@@ -1,3 +1,11 @@
+/*
+ * @Description: 
+ * @Author: ljw
+ * @Email: 3198354433@qq.com
+ * @Date: 2026-05-13 16:33:53
+ * @LastEditTime: 2026-05-13 17:59:15
+ * @LastEditors: ljw
+ */
 export type CommentConfig = {
 	enable: boolean;
 	repo: string;
@@ -21,7 +29,7 @@ export const commentConfig: CommentConfig = {
 	mapping: "pathname",
 	strict: "0",
 	reactionsEnabled: "1",
-	inputPosition: "bottom",
+	inputPosition: "top",
 	lang: "zh-CN",
 	theme: "preferred_color_scheme",
 };
