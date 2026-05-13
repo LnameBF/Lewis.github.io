@@ -1,0 +1,86 @@
+---
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { friendLinks, friendLinksIssueUrl } from "@/data/friends";
+---
+
+<MainGridLayout title="友链" description="友情链接与申请方式">
+	<div class="space-y-6">
+		<section class="card-base px-6 py-5">
+			<h1 class="text-2xl font-bold text-[var(--primary)]">友情链接</h1>
+			<p class="mt-3 text-sm text-neutral-500 dark:text-neutral-400">
+				这里收录了我常看、常逛、愿意推荐的朋友们的网站。
+			</p>
+		</section>
+
+		<section class="card-base px-6 py-5">
+			<div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+				<div class="space-y-3">
+					<h2 class="text-xl font-bold">申请友链</h2>
+					<p class="text-sm text-neutral-500 dark:text-neutral-400">
+						本站部署在 GitHub Pages 上，友链申请通过 GitHub Issue 进行处理。
+					</p>
+					<div>
+						<h3 class="font-semibold">申请要求</h3>
+						<ul class="mt-2 list-disc pl-5 text-sm text-neutral-500 dark:text-neutral-400">
+							<li>站点可以正常访问</li>
+							<li>内容正常、非恶意、非违规</li>
+							<li>如你有互链要求，请在申请中说明</li>
+						</ul>
+					</div>
+					<div>
+						<h3 class="font-semibold">申请格式</h3>
+						<ul class="mt-2 list-disc pl-5 text-sm text-neutral-500 dark:text-neutral-400">
+							<li>站点名称</li>
+							<li>站点链接</li>
+							<li>头像 / 图标链接</li>
+							<li>站点描述</li>
+							<li>RSS 地址（可选）</li>
+						</ul>
+					</div>
+				</div>
+
+				<a
+					href={friendLinksIssueUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="btn-regular inline-flex h-11 items-center justify-center rounded-lg px-5 font-bold active:scale-95"
+				>
+					申请友链
+				</a>
+			</div>
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="px-1 text-xl font-bold">已添加友链</h2>
+
+			{friendLinks.length === 0 ? (
+				<div class="card-base px-6 py-8 text-sm text-neutral-500 dark:text-neutral-400">
+					暂时还没有添加友链，欢迎通过 GitHub Issue 申请。
+				</div>
+			) : (
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+					{friendLinks.map((friend) => (
+						<a
+							href={friend.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="card-base flex items-center gap-4 px-5 py-4 transition hover:scale-[1.01]"
+						>
+							<img
+								src={friend.avatar}
+								alt={`${friend.name} avatar`}
+								class="h-14 w-14 rounded-full object-cover"
+							/>
+							<div class="min-w-0">
+								<div class="truncate text-lg font-bold">{friend.name}</div>
+								<p class="mt-1 line-clamp-2 text-sm text-neutral-500 dark:text-neutral-400">
+									{friend.description}
+								</p>
+							</div>
+						</a>
+					))}
+				</div>
+			)}
+		</section>
+	</div>
+</MainGridLayout>
