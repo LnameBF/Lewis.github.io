@@ -40,6 +40,10 @@ pnpm publish-article "https://example.com/article" --target external
 - 需要当前设备具备对应 git 权限
 - 使用固定工作目录
 - 若目标项目不是可用 Fuwari 项目，脚本会尝试初始化
+- `external` 模式会在发文前自动执行 `git pull origin main`
+- 发文成功后会自动执行 commit 和 `git push origin main`
+- 如果 pull 失败，会直接中止，不创建文章
+- 如果 commit 或 push 失败，会保留本地成果供人工处理
 
 ## 常见问题
 ### 为什么会提示版本不匹配？

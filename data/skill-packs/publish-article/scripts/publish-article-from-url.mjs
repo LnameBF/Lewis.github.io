@@ -200,6 +200,16 @@ function cloneExternalWorkspace() {
 	runCommand("git", ["clone", EXTERNAL_REPO_URL, EXTERNAL_WORKSPACE], REPO_ROOT)
 }
 
+function syncExternalMain(projectRoot) {
+	runCommand("git", ["pull", "origin", "main"], projectRoot)
+}
+
+function ensureCleanExternalWorkspace(projectRoot) {
+	if (runCommand("git", ["status", "--short"], projectRoot).trim().length > 0) {
+		fail("external 模式工作区存在未提交改动，请先处理后再发布")
+	}
+}
+
 function initializeExternalWorkspace(projectRoot) {
 	ensureDirectory(projectRoot)
 	runCommand("pnpm", ["create", "fuwari@latest"], projectRoot)
@@ -217,6 +227,24 @@ function ensureExternalProject(projectRoot) {
 	if (!isFuwariProject(projectRoot)) {
 		fail("external 模式项目准备失败，pnpm new-post 不可用")
 	}
+}
+
+function toGitPath(projectRoot, filePath) {
+	return path.relative(projectRoot, filePath).split(path.sep).join("/")
+}
+
+function hasPostFileChange(projectRoot, postPath) {
+	return runCommand("git", ["status", "--short", "--", toGitPath(projectRoot, postPath)], projectRoot).trim().length > 0
+}
+
+function toCommitTitle(title) {
+	return title.replace(/\s+/g, " ").trim().slice(0, 60)
+}
+
+function commitAndPushExternal(projectRoot, title, postPath) {
+	runCommand("git", ["add", postPath], projectRoot)
+	runCommand("git", ["commit", "-m", `feat: publish article ${toCommitTitle(title)}`], projectRoot)
+	runCommand("git", ["push", "origin", "main"], projectRoot)
 }
 
 function decodeHtml(text) {
@@ -521,6 +549,8 @@ async function main() {
 		ensureCurrentProject(projectRoot)
 	} else {
 		ensureExternalProject(projectRoot)
+		ensureCleanExternalWorkspace(projectRoot)
+		syncExternalMain(projectRoot)
 	}
 
 	const article = await fetchArticle(options.url)
@@ -543,7 +573,6 @@ async function main() {
 		createPost(projectRoot, safeFilename, finalTitle)
 		const postContent = buildPostContent(finalTitle, options.url, article.markdown, category, tags)
 		writePostFile(postPath, postContent, finalTitle)
-		succeed(finalTitle)
 	} catch (error) {
 		removeFileIfExists(postPath)
 		if (error instanceof PublishError) {
@@ -551,6 +580,21 @@ async function main() {
 		}
 		fail(error instanceof Error ? error.message : "创建文章失败", finalTitle)
 	}
+
+	if (options.target === "external") {
+		try {
+			if (!hasPostFileChange(projectRoot, postPath)) {
+				fail("external 模式未检测到有效 git 变更", finalTitle)
+			}
+
+			commitAndPushExternal(projectRoot, finalTitle, postPath)
+		} catch (error) {
+			const message = error instanceof PublishError ? error.message : error instanceof Error ? error.message : "发生未知错误"
+			fail(`external 模式 git 同步失败，请保留本地文章后手动处理：${message}`, finalTitle)
+		}
+	}
+
+	succeed(finalTitle)
 }
 
 try {

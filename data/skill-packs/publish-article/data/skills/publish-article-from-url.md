@@ -20,13 +20,19 @@
 4. 抓取正文并转换为 Markdown
 5. 自动补齐 `category` 和 `tags`
 6. 执行 `pnpm publish-article ...`
-7. 返回文章标题、发布状态、发布时间
+7. `external` 模式下自动同步远端 `main`
+8. `external` 模式下成功后自动提交并推送到远端 `main`
+9. 返回文章标题、发布状态、发布时间
 
 ## 自动元数据规则
 - 分类优先从固定分类池中匹配
 - 若没有合适分类，会自动总结短分类
 - 标签会根据文章内容自由生成 2~3 个
 - 生成结果会写入 frontmatter
+
+## 模式行为
+- `current` 模式只在本地创建文章，不会自动 push
+- `external` 模式会自动 `git pull origin main`、commit 和 push
 
 ## 命令
 ```bash
