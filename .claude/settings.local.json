@@ -15,7 +15,9 @@
       "mcp__mcpServers__emulate",
       "mcp__mcpServers__click",
       "Bash(npm -v)",
-      "mcp__mcpServers__take_screenshot"
+      "mcp__mcpServers__take_screenshot",
+      "Bash(ps *)",
+      "Bash(kill 27688 *)"
     ]
   }
 }

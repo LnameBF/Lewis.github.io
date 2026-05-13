@@ -25,4 +25,3 @@ export const commentConfig: CommentConfig = {
 	lang: "zh-CN",
 	theme: "preferred_color_scheme",
 };
-
