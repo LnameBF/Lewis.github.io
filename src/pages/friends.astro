@@ -7,7 +7,43 @@ import { friendLinks, friendLinksIssueUrl } from "@/data/friends";
 	<div class="space-y-6">
 		<section class="card-base px-6 py-5">
 			<h1 class="text-2xl font-bold text-[var(--primary)]">友情链接</h1>
-			<p class="mt-3 text-sm text-neutral-500 dark:text-neutral-400">
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="px-1 text-xl font-bold">已添加友链</h2>
+
+			{friendLinks.length === 0 ? (
+				<div class="card-base px-6 py-8 text-sm text-neutral-500 dark:text-neutral-400">
+					暂时还没有添加友链，欢迎通过 GitHub Issue 申请。
+				</div>
+			) : (
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+					{friendLinks.map((friend) => (
+						<a
+							href={friend.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="card-base flex items-center gap-4 px-5 py-4 transition hover:scale-[1.01]"
+						>
+							<img
+								src={friend.avatar}
+								alt={`${friend.name} avatar`}
+								class="h-14 w-14 rounded-full object-cover"
+							/>
+							<div class="min-w-0">
+								<div class="truncate text-lg font-bold">{friend.name}</div>
+								<p class="mt-1 line-clamp-2 text-sm text-neutral-500 dark:text-neutral-400">
+									{friend.description}
+								</p>
+							</div>
+						</a>
+					))}
+				</div>
+			)}
+		</section>
+
+		<section class="card-base px-6 py-5">
+			<p class="text-sm text-neutral-500 dark:text-neutral-400">
 				这里收录了我常看、常逛、愿意推荐的朋友们的网站。
 			</p>
 		</section>
@@ -48,39 +84,6 @@ import { friendLinks, friendLinksIssueUrl } from "@/data/friends";
 					申请友链
 				</a>
 			</div>
-		</section>
-
-		<section class="space-y-4">
-			<h2 class="px-1 text-xl font-bold">已添加友链</h2>
-
-			{friendLinks.length === 0 ? (
-				<div class="card-base px-6 py-8 text-sm text-neutral-500 dark:text-neutral-400">
-					暂时还没有添加友链，欢迎通过 GitHub Issue 申请。
-				</div>
-			) : (
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-					{friendLinks.map((friend) => (
-						<a
-							href={friend.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="card-base flex items-center gap-4 px-5 py-4 transition hover:scale-[1.01]"
-						>
-							<img
-								src={friend.avatar}
-								alt={`${friend.name} avatar`}
-								class="h-14 w-14 rounded-full object-cover"
-							/>
-							<div class="min-w-0">
-								<div class="truncate text-lg font-bold">{friend.name}</div>
-								<p class="mt-1 line-clamp-2 text-sm text-neutral-500 dark:text-neutral-400">
-									{friend.description}
-								</p>
-							</div>
-						</a>
-					))}
-				</div>
-			)}
 		</section>
 	</div>
 </MainGridLayout>

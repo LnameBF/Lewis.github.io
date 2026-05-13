@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm publish-article *)",
+      "Bash(node *)",
+      "Bash(pnpm *)",
+      "Bash(npm --version)",
+      "Bash(git *)",
+      "Bash(python -)",
+      "mcp__mcpServers__new_page",
+      "mcp__mcpServers__list_pages",
+      "mcp__mcpServers__navigate_page",
+      "mcp__mcpServers__take_snapshot",
+      "mcp__mcpServers__resize_page",
+      "mcp__mcpServers__emulate",
+      "mcp__mcpServers__click"
+    ]
+  }
+}
