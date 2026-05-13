@@ -1,4 +1,157 @@
-<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>全新的开始.md</title><link>https://lewis.heiok.top/posts/%E5%85%A8%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E5%85%A8%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/</guid><pubDate>Tue, 12 May 2026 00:00:00 GMT</pubDate><content:encoded/></item><item><title>Markdown Extended Features</title><link>https://lewis.heiok.top/posts/markdown-extended/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/markdown-extended/</guid><description>Read more about Markdown features in Fuwari</description><pubDate>Wed, 01 May 2024 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;GitHub Repository Cards&lt;/h2&gt;
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>告别手动切换 Node 版本：从 nvm 迁移到 Volta从 nvm 迁移到 Volta：让 Node 版本跟着项目自 - 掘金</title><link>https://lewis.heiok.top/posts/%E5%91%8A%E5%88%AB%E6%89%8B%E5%8A%A8%E5%88%87%E6%8D%A2-node-%E7%89%88%E6%9C%AC-%E4%BB%8E-nvm-%E8%BF%81%E7%A7%BB%E5%88%B0-volta%E4%BB%8E-nvm-%E8%BF%81%E7%A7%BB%E5%88%B0-volta-%E8%AE%A9-node-%E7%89%88%E6%9C%AC%E8%B7%9F%E7%9D%80%E9%A1%B9%E7%9B%AE%E8%87%AA-%E6%8E%98%E9%87%91/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E5%91%8A%E5%88%AB%E6%89%8B%E5%8A%A8%E5%88%87%E6%8D%A2-node-%E7%89%88%E6%9C%AC-%E4%BB%8E-nvm-%E8%BF%81%E7%A7%BB%E5%88%B0-volta%E4%BB%8E-nvm-%E8%BF%81%E7%A7%BB%E5%88%B0-volta-%E8%AE%A9-node-%E7%89%88%E6%9C%AC%E8%B7%9F%E7%9D%80%E9%A1%B9%E7%9B%AE%E8%87%AA-%E6%8E%98%E9%87%91/</guid><pubDate>Wed, 13 May 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+&lt;p&gt;原文链接：https://juejin.cn/post/7637354393595166730
+抓取时间：2026-05-13 16:45:07&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;告别手动切换 Node 版本：从 nvm 迁移到 Volta&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;/user/678879038808811/posts&quot;&gt;
+MPGWJPMTJT
+&lt;/a&gt;
+2026-05-08&lt;/p&gt;
+&lt;p&gt;184&lt;/p&gt;
+&lt;p&gt;阅读4分钟&lt;/p&gt;
+&lt;h2&gt;从 nvm 迁移到 Volta：让 Node 版本跟着项目自动切换&lt;/h2&gt;
+&lt;p&gt;做前端开发时，多个项目使用不同 Node.js 版本几乎是常态。&lt;/p&gt;
+&lt;p&gt;比如有的老项目还停留在 Node 14.x，有的项目依赖 Node 16.x，新项目又可能要求 Node 22+。如果每次进入项目都要手动切换版本，不仅麻烦，还很容易忘。&lt;/p&gt;
+&lt;p&gt;我之前一直使用的是 nvm ，它能解决多版本安装的问题，但版本切换依赖手动执行命令。一旦进入项目后忘记切换 Node 版本，轻则安装依赖报错，重则出现一些很难定位的构建问题。&lt;/p&gt;
+&lt;p&gt;所以这次我决定把本地 Node 版本管理从 nvm 迁移到 Volta 。&lt;/p&gt;
+&lt;h3&gt;为什么选择 Volta&lt;/h3&gt;
+&lt;p&gt;Volta 也是一个 Node.js 版本管理工具，但它和 nvm 的使用体验不太一样。&lt;/p&gt;
+&lt;p&gt;它最大的特点是：可以把项目需要的 Node 版本写进 package.json ，之后只要进入项目目录，Volta 就会自动使用项目指定的版本。&lt;/p&gt;
+&lt;p&gt;也就是说，迁移完成后，基本不需要再记住“这个项目应该用哪个 Node 版本”，工具会替你处理。&lt;/p&gt;
+&lt;h3&gt;迁移前准备&lt;/h3&gt;
+&lt;p&gt;在卸载 nvm 之前，建议先查看当前已经安装过哪些 Node 版本：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;nvm list
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;把仍然需要使用的版本记录下来，比如：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;14.21.3
+16.20.2
+22.22.2
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这些版本后面可以通过 Volta 重新安装。&lt;/p&gt;
+&lt;p&gt;另外，卸载前最好关闭所有正在运行的 Node 相关进程，避免因为进程占用导致卸载不完整。&lt;/p&gt;
+&lt;h3&gt;卸载 nvm&lt;/h3&gt;
+&lt;p&gt;先关闭 nvm 对 Node 的管理：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;nvm off
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;然后在 Windows 中卸载 NVM for Windows ：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Windows 设置 -&amp;gt; 应用 -&amp;gt; 已安装的应用 -&amp;gt; NVM for Windows -&amp;gt; 卸载
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;卸载完成后，可以重新打开一个 PowerShell，确认 nvm 已经不可用。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;nvm version
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果命令不存在，说明 nvm 已经卸载完成。&lt;/p&gt;
+&lt;h3&gt;安装 Volta&lt;/h3&gt;
+&lt;p&gt;在 PowerShell 中执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;winget install Volta.Volta
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;安装完成后，重新打开终端，让环境变量生效。&lt;/p&gt;
+&lt;p&gt;可以通过下面的命令确认 Volta 是否安装成功：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta --version
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;设置默认 Node 版本&lt;/h3&gt;
+&lt;p&gt;先安装一个较新的 Node.js 版本作为全局默认版本。&lt;/p&gt;
+&lt;p&gt;例如我这里使用的是：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta install node@22.22.2
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;安装完成后，可以检查当前默认版本：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;node -v
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;后续如果想修改默认 Node 版本，也继续使用 volta install ：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta install node@新版本
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;需要注意的是，这里的默认版本主要影响没有单独配置 Node 版本的目录。&lt;/p&gt;
+&lt;h3&gt;为项目指定 Node 版本&lt;/h3&gt;
+&lt;p&gt;进入某个项目目录，然后使用 volta pin 指定该项目需要的 Node 版本。&lt;/p&gt;
+&lt;p&gt;例如某个老项目需要 Node 14：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;cd D:\project\old-app
+volta pin node@14.21.3
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;执行完成后，项目的 package.json 中会自动新增一个 volta 字段：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt; { 
+ &quot;volta&quot; : { 
+ &quot;node&quot; : &quot;14.21.3&quot; 
+ } 
+ } 
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;之后只要在这个项目目录中执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;node -v
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Volta 就会自动使用项目指定的 Node 版本。&lt;/p&gt;
+&lt;p&gt;这也是我从 nvm 迁移到 Volta 的主要原因：版本跟项目绑定，而不是靠人脑记忆。&lt;/p&gt;
+&lt;h3&gt;查看已安装版本&lt;/h3&gt;
+&lt;p&gt;可以使用下面的命令查看 Volta 当前管理的工具和版本：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta list all
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果某个项目 pin 了一个本地还没有安装过的 Node 版本，Volta 会在需要时自动处理对应版本。&lt;/p&gt;
+&lt;h3&gt;全局包怎么安装&lt;/h3&gt;
+&lt;p&gt;迁移到 Volta 后，全局包不建议再使用：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;npm install -g 包名
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;更推荐使用：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta install 包名
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;例如：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta install pnpm
+volta install yarn
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这样安装的全局工具会由 Volta 管理，行为更稳定，也不会被当前项目的 Node 版本影响。&lt;/p&gt;
+&lt;p&gt;如果想安装指定版本：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta install 包名@版本
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;例如：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta install pnpm@9.15.0
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;项目内的包管理器版本&lt;/h3&gt;
+&lt;p&gt;项目内安装依赖时，仍然使用项目自己的包管理工具，比如：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;npm install
+yarn install
+pnpm install
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果某个项目对包管理器版本也有要求，可以同样通过 volta pin 固定。&lt;/p&gt;
+&lt;p&gt;例如固定 Yarn 版本：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;volta pin yarn@1.22.22
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;执行后， package.json 中的 volta 字段会变成类似这样：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt; { 
+ &quot;volta&quot; : { 
+ &quot;node&quot; : &quot;14.21.3&quot; , 
+ &quot;yarn&quot; : &quot;1.22.22&quot; 
+ } 
+ } 
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这样团队成员拉取代码后，也能使用一致的 Node 和包管理器版本。&lt;/p&gt;
+&lt;h3&gt;迁移后的体验&lt;/h3&gt;
+&lt;p&gt;迁移完成后，我最明显的感受是：不用再频繁思考 Node 版本了。&lt;/p&gt;
+&lt;p&gt;以前进入项目后，第一反应是：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;nvm use 14.21.3
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;现在只需要进入项目目录，Volta 会自动根据 package.json 中的配置切换版本。&lt;/p&gt;
+&lt;p&gt;对同时维护多个新老项目的人来说，这个体验提升还是很明显的。&lt;/p&gt;
+&lt;h3&gt;总结&lt;/h3&gt;
+&lt;p&gt;这次从 nvm 迁移到 Volta ，核心流程其实很简单：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;记录原来 nvm 中需要保留的 Node 版本&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;卸载 NVM for Windows&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;安装 Volta&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;使用 volta install 设置默认 Node 版本&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在项目中使用 volta pin 固定 Node 版本&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;使用 volta install 管理全局工具&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果你也经常在多个前端项目之间切换，尤其是项目 Node 版本差异比较大，Volta 会比手动切换版本省心很多。&lt;/p&gt;
+&lt;p&gt;它不只是“安装多个 Node 版本”，更重要的是把版本管理这件事从个人习惯变成项目配置。&lt;/p&gt;
+</content:encoded></item><item><title>全新的开始.md</title><link>https://lewis.heiok.top/posts/%E5%85%A8%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E5%85%A8%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/</guid><pubDate>Tue, 12 May 2026 00:00:00 GMT</pubDate><content:encoded/></item><item><title>Markdown Extended Features</title><link>https://lewis.heiok.top/posts/markdown-extended/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/markdown-extended/</guid><description>Read more about Markdown features in Fuwari</description><pubDate>Wed, 01 May 2024 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;GitHub Repository Cards&lt;/h2&gt;
 &lt;p&gt;You can add dynamic cards that link to GitHub repositories, on page load, the repository information is pulled from the GitHub API.&lt;/p&gt;
 &lt;p&gt;::github{repo=&quot;Fabrizz/MMM-OnSpotify&quot;}&lt;/p&gt;
 &lt;p&gt;Create a GitHub repository card with the code &lt;code&gt;::github{repo=&quot;&amp;lt;owner&amp;gt;/&amp;lt;repo&amp;gt;&quot;}&lt;/code&gt;.&lt;/p&gt;
