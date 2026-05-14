@@ -23,7 +23,7 @@ const GENERIC_TAG_BLACKLIST = new Set(["技术", "开发", "教程", "文章", "
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const REPO_ROOT = path.resolve(__dirname, "..")
+const REPO_ROOT = path.resolve(__dirname, "..", "..", "..", "..")
 const EXTERNAL_WORKSPACE = path.join(REPO_ROOT, "data", "skills", "workspaces", "Lewis.github.io")
 
 class PublishError extends Error {
@@ -303,6 +303,40 @@ function countKeywordMatches(text, keywords) {
 	}, 0)
 }
 
+function removeJuejinMetadataLines(markdown) {
+	const lines = markdown.split(/\r?\n/)
+	const filtered = []
+	let skipping = false
+	let skipBlankCount = 0
+
+	for (const line of lines) {
+		const trimmed = line.trim()
+
+		if (!skipping && (trimmed === "Tree1024" || /^\d{4}-\d{2}-\d{2}$/.test(trimmed) || /^阅读\d+分钟$/.test(trimmed) || /^\d+$/.test(trimmed))) {
+			skipping = true
+			skipBlankCount = 0
+			continue
+		}
+
+		if (skipping) {
+			if (!trimmed) {
+				skipBlankCount += 1
+				if (skipBlankCount < 2) {
+					continue
+				}
+			} else if (trimmed === "Tree1024" || /^\d{4}-\d{2}-\d{2}$/.test(trimmed) || /^阅读\d+分钟$/.test(trimmed) || /^\d+$/.test(trimmed)) {
+				continue
+			} else {
+				skipping = false
+			}
+		}
+
+		filtered.push(line)
+	}
+
+	return filtered.join("\n")
+}
+
 function htmlToMarkdown(html) {
 	const withBlocks = html
 		.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "\n# $1\n\n")
@@ -324,7 +358,7 @@ function htmlToMarkdown(html) {
 		.replace(/<img[^>]*src=[\"']([^\"']+)[\"'][^>]*alt=[\"']([^\"']*)[\"'][^>]*>/gi, "![$2]($1)")
 		.replace(/<img[^>]*alt=[\"']([^\"']*)[\"'][^>]*src=[\"']([^\"']+)[\"'][^>]*>/gi, "![$1]($2)")
 
-	return normalizeWhitespace(stripTags(withBlocks).replace(/^# .*$/m, "")).replaceAll(CODE_BLOCK_SENTINEL, "```")
+	return removeJuejinMetadataLines(normalizeWhitespace(stripTags(withBlocks).replace(/^# .*$/m, "")).replaceAll(CODE_BLOCK_SENTINEL, "```"))
 }
 
 function extractTagContent(html, tagName) {

@@ -23,7 +23,8 @@
       "Bash(npx skills *)",
       "Bash(mkdir -p __TRACKED_VAR__/.claude/skills/publish-article)",
       "Bash(cp -R /d/code/fuwari/waityou/data/skill-packs/publish-article/* __TRACKED_VAR__/.claude/skills/publish-article/)",
-      "Skill(publish-article)"
+      "Skill(publish-article)",
+      "WebFetch(domain:juejin.cn)"
     ]
   }
 }
