@@ -3,8 +3,6 @@
 抓取时间：2026-05-13 16:45:07&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;告别手动切换 Node 版本：从 nvm 迁移到 Volta&lt;/p&gt;
-&lt;p&gt;184&lt;/p&gt;
-&lt;p&gt;阅读4分钟&lt;/p&gt;
 &lt;h2&gt;从 nvm 迁移到 Volta：让 Node 版本跟着项目自动切换&lt;/h2&gt;
 &lt;p&gt;做前端开发时，多个项目使用不同 Node.js 版本几乎是常态。&lt;/p&gt;
 &lt;p&gt;比如有的老项目还停留在 Node 14.x，有的项目依赖 Node 16.x，新项目又可能要求 Node 22+。如果每次进入项目都要手动切换版本，不仅麻烦，还很容易忘。&lt;/p&gt;
