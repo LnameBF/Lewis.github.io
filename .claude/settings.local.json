@@ -17,7 +17,13 @@
       "Bash(npm -v)",
       "mcp__mcpServers__take_screenshot",
       "Bash(ps *)",
-      "Bash(kill 27688 *)"
+      "Bash(kill 27688 *)",
+      "Skill(find-skills)",
+      "Skill(superpowers:using-superpowers)",
+      "Bash(npx skills *)",
+      "Bash(mkdir -p __TRACKED_VAR__/.claude/skills/publish-article)",
+      "Bash(cp -R /d/code/fuwari/waityou/data/skill-packs/publish-article/* __TRACKED_VAR__/.claude/skills/publish-article/)",
+      "Skill(publish-article)"
     ]
   }
 }

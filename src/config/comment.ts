@@ -12,7 +12,7 @@ export type CommentConfig = {
 	repoId: string;
 	category: string;
 	categoryId: string;
-	mapping: "pathname";
+	mapping: "pathname" | "title" | "url" | "og:title" | "specific" | "number";
 	strict: "0" | "1";
 	reactionsEnabled: "0" | "1";
 	inputPosition: "top" | "bottom";
@@ -26,7 +26,7 @@ export const commentConfig: CommentConfig = {
 	repoId: "R_kgDOSbAp7g",
 	category: "General",
 	categoryId: "DIC_kwDOSbAp7s4C88PI",
-	mapping: "pathname",
+	mapping: "title",
 	strict: "0",
 	reactionsEnabled: "1",
 	inputPosition: "top",

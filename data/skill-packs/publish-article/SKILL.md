@@ -1,3 +1,8 @@
+---
+name: publish-article
+description: Publish an article from a URL into a Fuwari blog, generating category and tags automatically.
+---
+
 # 发布文章技能包
 
 ## 简介

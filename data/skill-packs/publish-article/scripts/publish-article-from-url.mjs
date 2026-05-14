@@ -425,11 +425,11 @@ function detectCategory(title, markdown) {
 	}
 
 	if (best.score < 2) {
-		return summarizeFallbackCategory(title, markdown)
+		return "随笔"
 	}
 
 	if (second && best.score - second.score < 2) {
-		return summarizeFallbackCategory(title, markdown)
+		return "随笔"
 	}
 
 	return best.category
@@ -499,8 +499,12 @@ function generateTags(title, markdown, category) {
 	return unique([...tags, ...fallbacks]).filter((item) => item !== category || category === "AI").slice(0, 2)
 }
 
-function resolvePostPath(projectRoot, filename) {
-	return path.join(projectRoot, "src", "content", "posts", `${filename}.md`)
+function resolvePostPath(projectRoot, category, filename) {
+	return path.join(projectRoot, "src", "content", "posts", category, `${filename}.md`)
+}
+
+function resolveCategoryDirectoryName(category) {
+	return category === "随笔" ? "随笔" : category
 }
 
 function escapeYamlString(value) {
@@ -515,9 +519,12 @@ function buildPostContent(title, url, markdown, category, tags) {
 	return `---\ntitle: '${escapeYamlString(title)}'\npublished: ${today}\ndescription: ''\nimage: ''\ntags: [${renderedTags}]\ncategory: '${escapeYamlString(category)}'\ndraft: false\nlang: 'zh-CN'\n---\n\n> 原文链接：${url}\n> 抓取时间：${fetchedAt}\n\n${markdown}\n`
 }
 
-function createPost(projectRoot, filename, title) {
-	runCommand("pnpm", ["new-post", filename], projectRoot)
-	const postPath = resolvePostPath(projectRoot, filename)
+function createPost(projectRoot, category, filename, title) {
+	const categoryDirectory = resolveCategoryDirectoryName(category)
+	const categoryRoot = path.join(projectRoot, "src", "content", "posts", categoryDirectory)
+	ensureDirectory(categoryRoot)
+	runCommand("pnpm", ["new-post", `${categoryDirectory}/${filename}`], projectRoot)
+	const postPath = resolvePostPath(projectRoot, categoryDirectory, filename)
 
 	if (!fs.existsSync(postPath)) {
 		fail("新文章文件创建后未找到", title)
@@ -567,10 +574,10 @@ async function main() {
 		fail("文章标题无法转换为有效文件名", finalTitle)
 	}
 
-	const postPath = resolvePostPath(projectRoot, safeFilename)
+	const postPath = resolvePostPath(projectRoot, category, safeFilename)
 
 	try {
-		createPost(projectRoot, safeFilename, finalTitle)
+		createPost(projectRoot, category, safeFilename, finalTitle)
 		const postContent = buildPostContent(finalTitle, options.url, article.markdown, category, tags)
 		writePostFile(postPath, postContent, finalTitle)
 	} catch (error) {
