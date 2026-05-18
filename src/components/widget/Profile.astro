@@ -1,10 +1,12 @@
 ---
 import { Icon } from "astro-icon/components";
 import { profileConfig } from "../../config";
+import { getTotalWordCount } from "../../utils/content-utils";
 import { url } from "../../utils/url-utils";
 import ImageWrapper from "../misc/ImageWrapper.astro";
 
 const config = profileConfig;
+const totalWords = await getTotalWordCount();
 ---
 <div class="card-base p-3">
     <a aria-label="Go to About Page" href={url('/about/')}
@@ -22,7 +24,7 @@ const config = profileConfig;
         <div class="font-bold text-xl text-center mb-1 dark:text-neutral-50 transition">{config.name}</div>
         <div class="h-1 w-5 bg-[var(--primary)] mx-auto rounded-full mb-2 transition"></div>
         <div class="text-center text-neutral-400 mb-2.5 transition">{config.bio}</div>
-        <div class="flex flex-wrap gap-2 justify-center mb-1">
+        <div class="flex flex-wrap gap-2 justify-center mb-2">
             {config.links.length > 1 && config.links.map(item =>
                     <a rel="me" aria-label={item.name} href={item.url} target="_blank" class="btn-regular rounded-lg h-10 w-10 active:scale-90">
                         <Icon name={item.icon} class="text-[1.5rem]"></Icon>
@@ -34,6 +36,41 @@ const config = profileConfig;
                 {config.links[0].name}
             </a>}
         </div>
+        <div class="flex flex-col gap-1 text-sm text-neutral-500 dark:text-neutral-400 transition">
+            <div class="flex items-center justify-center gap-1.5">
+                <Icon name="fa6-solid:pencil" class="text-xs"></Icon>
+                <span>总计 {totalWords.toLocaleString()} 字</span>
+            </div>
+            <div class="flex items-center justify-center gap-1.5">
+                <Icon name="fa6-solid:eye" class="text-xs"></Icon>
+                <span>浏览量 --</span>
+            </div>
+            <div class="flex items-center justify-center gap-1.5">
+                <Icon name="fa6-solid:code-commit" class="text-xs"></Icon>
+                <a id="profile-commit-link" href="/info/" class="hover:text-[var(--primary)] transition">
+                    <span id="profile-commit-hash">加载中...</span>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
+<script is:inline>
+async function loadProfileCommit() {
+    try {
+        const resp = await fetch('https://api.github.com/repos/LnameBF/Lewis.github.io/commits?per_page=1');
+        const data = await resp.json();
+        if (!data || !data[0]) return;
+        const hash = data[0].sha.slice(0, 7);
+        const el = document.getElementById('profile-commit-hash');
+        const link = document.getElementById('profile-commit-link');
+        if (el) el.textContent = '当前提交 ' + hash;
+        if (link) link.title = '(' + data[0].commit.committer.date + ') ' + data[0].commit.message;
+    } catch (e) {
+        const el = document.getElementById('profile-commit-hash');
+        if (el) el.textContent = '当前提交 --';
+    }
+}
+loadProfileCommit();
+document.addEventListener('astro:page-load', () => { loadProfileCommit(); });
+</script>

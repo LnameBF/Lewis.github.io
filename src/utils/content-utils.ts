@@ -72,6 +72,22 @@ export async function getTagList(): Promise<Tag[]> {
 	return keys.map((key) => ({ name: key, count: countMap[key] }));
 }
 
+export async function getTotalWordCount(): Promise<number> {
+	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
+		return import.meta.env.PROD ? data.draft !== true : true;
+	});
+
+	const getReadingTime = (await import("reading-time")).default;
+	let total = 0;
+	allBlogPosts.forEach((post) => {
+		if (post.body) {
+			const stats = getReadingTime(post.body);
+			total += stats.words;
+		}
+	});
+	return total;
+}
+
 export type Category = {
 	name: string;
 	count: number;
