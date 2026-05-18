@@ -3,7 +3,7 @@
  * @Author: ljw
  * @Email: 3198354433@qq.com
  * @Date: 2026-05-12 11:27:42
- * @LastEditTime: 2026-05-12 15:03:45
+ * @LastEditTime: 2026-05-18 15:36:23
  * @LastEditors: ljw
  */
 import type {
@@ -55,6 +55,11 @@ export const navBarConfig: NavBarConfig = {
 		{
 			name: "友链",
 			url: "/friends/",
+		},
+		{
+			name: "统计信息",
+			url: "https://lewisheiok.netlify.app/share/pMv8Ewst8OycAyGj", // TODO: 替换为实际统计信息URL
+			external: true,
 		},
 		{
 			name: "GitHub",
