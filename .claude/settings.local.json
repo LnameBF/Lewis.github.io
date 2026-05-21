@@ -24,7 +24,28 @@
       "Bash(mkdir -p __TRACKED_VAR__/.claude/skills/publish-article)",
       "Bash(cp -R /d/code/fuwari/waityou/data/skill-packs/publish-article/* __TRACKED_VAR__/.claude/skills/publish-article/)",
       "Skill(publish-article)",
-      "WebFetch(domain:juejin.cn)"
+      "WebFetch(domain:juejin.cn)",
+      "mcp__mcpServers__wait_for",
+      "mcp__fetch__fetch",
+      "Bash(curl -sL \"https://api.github.com/repos/Ad-closeNN/blog-fuwari/contents/src/content/config.ts\")",
+      "Bash(python3 -c \"import sys,json,base64; d=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(d['content']\\).decode\\(\\)\\)\")",
+      "Bash(curl -sL \"https://api.github.com/repos/Ad-closeNN/blog-fuwari/contents/src/content\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(x['name'], x['type']\\) for x in data]\")",
+      "Bash(curl -sL \"https://api.github.com/repos/Ad-closeNN/blog-fuwari/contents/src/pages\")",
+      "Bash(curl -sL -H \"Accept: application/vnd.github.v3+json\" \"https://api.github.com/repos/Ad-closeNN/blog-fuwari/contents/src/content\")",
+      "Bash(curl *)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(x['name']\\) for x in data if 'config' in x['name'].lower\\(\\)]\")",
+      "WebSearch",
+      "Bash(gh api *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d.get\\(k\\) for k in ['name','description','topics','created_at','updated_at','homepage','default_branch']}, indent=2\\)\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c \"import sys,json; [print\\(f\\\\\"{i['name']} \\({i['type']}\\)\\\\\"\\) for i in json.load\\(sys.stdin\\)]\")",
+      "Bash(gh repo *)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(t['path']\\) for t in data.get\\('tree',[]\\) if 'path' in t]\")",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(xxd)",
+      "Bash(python -c ' *)"
     ]
   }
 }

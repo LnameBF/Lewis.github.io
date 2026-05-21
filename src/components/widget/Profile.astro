@@ -43,7 +43,7 @@ const totalWords = await getTotalWordCount();
             </div>
             <div class="flex items-center justify-center gap-1.5">
                 <Icon name="fa6-solid:eye" class="text-xs"></Icon>
-                <span>浏览量 --</span>
+                <span id="site-stats">加载中...</span>
             </div>
             <div class="flex items-center justify-center gap-1.5">
                 <Icon name="fa6-solid:code-commit" class="text-xs"></Icon>
@@ -57,20 +57,47 @@ const totalWords = await getTotalWordCount();
 
 <script is:inline>
 async function loadProfileCommit() {
-    try {
-        const resp = await fetch('https://api.github.com/repos/LnameBF/Lewis.github.io/commits?per_page=1');
-        const data = await resp.json();
-        if (!data || !data[0]) return;
-        const hash = data[0].sha.slice(0, 7);
-        const el = document.getElementById('profile-commit-hash');
-        const link = document.getElementById('profile-commit-link');
-        if (el) el.textContent = '当前提交 ' + hash;
-        if (link) link.title = '(' + data[0].commit.committer.date + ') ' + data[0].commit.message;
-    } catch (e) {
-        const el = document.getElementById('profile-commit-hash');
-        if (el) el.textContent = '当前提交 --';
-    }
+	try {
+		const resp = await fetch('https://api.github.com/repos/LnameBF/Lewis.github.io/commits?per_page=1');
+		const data = await resp.json();
+		if (!data || !data[0]) return;
+		const hash = data[0].sha.slice(0, 7);
+		const el = document.getElementById('profile-commit-hash');
+		const link = document.getElementById('profile-commit-link');
+		if (el) el.textContent = '当前提交 ' + hash;
+		if (link) link.title = '(' + data[0].commit.committer.date + ') ' + data[0].commit.message;
+	} catch (e) {
+		const el = document.getElementById('profile-commit-hash');
+		if (el) el.textContent = '当前提交 --';
+	}
 }
+
+async function loadSiteStats() {
+	const statsElement = document.getElementById('site-stats');
+	if (!statsElement || statsElement.dataset.umamiState === 'loading' || statsElement.dataset.umamiState === 'loaded') return;
+
+	statsElement.dataset.umamiState = 'loading';
+
+	try {
+		const umamiStore = window.__blogUmami;
+		const statsData = await umamiStore?.getStats('site:all', (websiteId) => {
+			const currentTimestamp = Date.now();
+			return `https://lewisheiok.netlify.app/api/websites/${websiteId}/stats?startAt=0&endAt=${currentTimestamp}&unit=hour&timezone=${encodeURIComponent('Asia/Shanghai')}&compare=false`;
+		});
+
+		if (!statsData) throw new Error('统计功能未启用');
+
+		const pageviews = statsData.pageviews?.value || 0;
+		statsElement.textContent = '浏览量 ' + pageviews;
+		statsElement.dataset.umamiState = 'loaded';
+	} catch (error) {
+		console.error('获取全站统计失败:', error);
+		statsElement.textContent = '统计不可用';
+		statsElement.dataset.umamiState = 'error';
+	}
+}
+
 loadProfileCommit();
-document.addEventListener('astro:page-load', () => { loadProfileCommit(); });
+loadSiteStats();
+document.addEventListener('astro:page-load', () => { loadProfileCommit(); loadSiteStats(); });
 </script>

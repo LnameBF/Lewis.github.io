@@ -3,6 +3,7 @@ import type { AUTO_MODE, DARK_MODE, LIGHT_MODE } from "@constants/constants";
 export type SiteConfig = {
 	title: string;
 	subtitle: string;
+	description?: string;
 
 	lang:
 		| "en"
@@ -99,4 +100,11 @@ export type BlogPostData = {
 
 export type ExpressiveCodeConfig = {
 	theme: string;
+};
+
+export type UmamiConfig = {
+	enable: boolean;
+	baseUrl: string;
+	shareId: string;
+	timezone: string;
 };

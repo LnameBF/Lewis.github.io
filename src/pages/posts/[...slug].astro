@@ -39,14 +39,21 @@ const jsonLd = {
 		name: profileConfig.name,
 		url: Astro.site,
 	},
+	publisher: {
+		"@type": "Person",
+		name: profileConfig.name,
+		url: Astro.site,
+	},
 	datePublished: formatDateToYYYYMMDD(entry.data.published),
+	dateModified: entry.data.updated ? formatDateToYYYYMMDD(entry.data.updated) : undefined,
+	url: new URL(getPostUrlBySlug(entry.slug), Astro.site).href,
+	...(entry.data.image ? { image: new URL(entry.data.image, Astro.site).href } : {}),
 	inLanguage: entry.data.lang
 		? entry.data.lang.replace("_", "-")
 		: siteConfig.lang.replace("_", "-"),
-	// TODO include cover image here
 };
 ---
-<MainGridLayout banner={entry.data.image} title={entry.data.title} description={entry.data.description} lang={entry.data.lang} setOGTypeArticle={true} headings={headings}>
+<MainGridLayout banner={entry.data.image} title={entry.data.title} description={entry.data.description} lang={entry.data.lang} setOGTypeArticle={true} image={entry.data.image} canonicalUrl={entry.data.canonicalUrl} robots={entry.data.robots} headings={headings}>
     <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
     <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative mb-4">
         <div id="post-container" class:list={["card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full ",
