@@ -45,9 +45,13 @@ const jsonLd = {
 		url: Astro.site,
 	},
 	datePublished: formatDateToYYYYMMDD(entry.data.published),
-	dateModified: entry.data.updated ? formatDateToYYYYMMDD(entry.data.updated) : undefined,
+	dateModified: entry.data.updated
+		? formatDateToYYYYMMDD(entry.data.updated)
+		: undefined,
 	url: new URL(getPostUrlBySlug(entry.slug), Astro.site).href,
-	...(entry.data.image ? { image: new URL(entry.data.image, Astro.site).href } : {}),
+	...(entry.data.image
+		? { image: new URL(entry.data.image, Astro.site).href }
+		: {}),
 	inLanguage: entry.data.lang
 		? entry.data.lang.replace("_", "-")
 		: siteConfig.lang.replace("_", "-"),

@@ -1,0 +1,135 @@
+2026-05-21T09:19:13.8961474Z Current runner version: '2.334.0'
+2026-05-21T09:19:13.8988345Z ##[group]Runner Image Provisioner
+2026-05-21T09:19:13.8989268Z Hosted Compute Agent
+2026-05-21T09:19:13.8989913Z Version: 20260213.493
+2026-05-21T09:19:13.8990600Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-05-21T09:19:13.8991792Z Build Date: 2026-02-13T00:28:41Z
+2026-05-21T09:19:13.8992573Z Worker ID: {de976476-9716-4e49-95a5-40afbad9043b}
+2026-05-21T09:19:13.8993394Z Azure Region: northcentralus
+2026-05-21T09:19:13.8994007Z ##[endgroup]
+2026-05-21T09:19:13.8995579Z ##[group]Operating System
+2026-05-21T09:19:13.8996220Z Ubuntu
+2026-05-21T09:19:13.8996728Z 24.04.4
+2026-05-21T09:19:13.8997249Z LTS
+2026-05-21T09:19:13.8997760Z ##[endgroup]
+2026-05-21T09:19:13.8998305Z ##[group]Runner Image
+2026-05-21T09:19:13.8998987Z Image: ubuntu-24.04
+2026-05-21T09:19:13.8999573Z Version: 20260513.135.3
+2026-05-21T09:19:13.9001146Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260513.135/images/ubuntu/Ubuntu2404-Readme.md
+2026-05-21T09:19:13.9002856Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260513.135
+2026-05-21T09:19:13.9003924Z ##[endgroup]
+2026-05-21T09:19:13.9005231Z ##[group]GITHUB_TOKEN Permissions
+2026-05-21T09:19:13.9007326Z Contents: read
+2026-05-21T09:19:13.9007913Z Metadata: read
+2026-05-21T09:19:13.9008487Z Packages: read
+2026-05-21T09:19:13.9009001Z ##[endgroup]
+2026-05-21T09:19:13.9011770Z Secret source: Actions
+2026-05-21T09:19:13.9012994Z Prepare workflow directory
+2026-05-21T09:19:13.9288776Z Prepare all required actions
+2026-05-21T09:19:13.9331601Z Getting action download info
+2026-05-21T09:19:14.3458489Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-05-21T09:19:14.7408349Z Download action repository 'biomejs/setup-biome@v2' (SHA:4c91541eaada48f67d7dbd7833600ce162b68f51)
+2026-05-21T09:19:15.0341933Z Complete job name: quality
+2026-05-21T09:19:15.0974399Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-05-21T09:19:15.0975723Z with:
+2026-05-21T09:19:15.0976337Z   repository: LnameBF/Lewis.github.io
+2026-05-21T09:19:15.0977349Z   token: ***
+2026-05-21T09:19:15.0977943Z   ssh-strict: true
+2026-05-21T09:19:15.0978551Z   ssh-user: git
+2026-05-21T09:19:15.0979164Z   persist-credentials: true
+2026-05-21T09:19:15.0979855Z   clean: true
+2026-05-21T09:19:15.0980468Z   sparse-checkout-cone-mode: true
+2026-05-21T09:19:15.0981383Z   fetch-depth: 1
+2026-05-21T09:19:15.0982016Z   fetch-tags: false
+2026-05-21T09:19:15.0982647Z   show-progress: true
+2026-05-21T09:19:15.0983272Z   lfs: false
+2026-05-21T09:19:15.0983839Z   submodules: false
+2026-05-21T09:19:15.0984550Z   set-safe-directory: true
+2026-05-21T09:19:15.0985472Z ##[endgroup]
+2026-05-21T09:19:15.1878743Z Syncing repository: LnameBF/Lewis.github.io
+2026-05-21T09:19:15.1880914Z ##[group]Getting Git version info
+2026-05-21T09:19:15.1882142Z Working directory is '/home/runner/work/Lewis.github.io/Lewis.github.io'
+2026-05-21T09:19:15.1883754Z [command]/usr/bin/git version
+2026-05-21T09:19:15.2226820Z git version 2.54.0
+2026-05-21T09:19:15.2246374Z ##[endgroup]
+2026-05-21T09:19:15.2263968Z Temporarily overriding HOME='/home/runner/work/_temp/d8fdf266-4da1-40fe-b9e6-c5c3831e39da' before making global git config changes
+2026-05-21T09:19:15.2266103Z Adding repository directory to the temporary git global config as a safe directory
+2026-05-21T09:19:15.2268363Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Lewis.github.io/Lewis.github.io
+2026-05-21T09:19:15.2294442Z Deleting the contents of '/home/runner/work/Lewis.github.io/Lewis.github.io'
+2026-05-21T09:19:15.2296948Z ##[group]Initializing the repository
+2026-05-21T09:19:15.2300169Z [command]/usr/bin/git init /home/runner/work/Lewis.github.io/Lewis.github.io
+2026-05-21T09:19:15.2381294Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-05-21T09:19:15.2383636Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-05-21T09:19:15.2386211Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-05-21T09:19:15.2387978Z hint: call:
+2026-05-21T09:19:15.2388777Z hint:
+2026-05-21T09:19:15.2389859Z hint: 	git config --global init.defaultBranch <name>
+2026-05-21T09:19:15.2391442Z hint:
+2026-05-21T09:19:15.2392739Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-05-21T09:19:15.2394840Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-05-21T09:19:15.2396597Z hint:
+2026-05-21T09:19:15.2397181Z hint: 	git branch -m <name>
+2026-05-21T09:19:15.2397850Z hint:
+2026-05-21T09:19:15.2398781Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-05-21T09:19:15.2400606Z Initialized empty Git repository in /home/runner/work/Lewis.github.io/Lewis.github.io/.git/
+2026-05-21T09:19:15.2404521Z [command]/usr/bin/git remote add origin https://github.com/LnameBF/Lewis.github.io
+2026-05-21T09:19:15.2417116Z ##[endgroup]
+2026-05-21T09:19:15.2418738Z ##[group]Disabling automatic garbage collection
+2026-05-21T09:19:15.2420326Z [command]/usr/bin/git config --local gc.auto 0
+2026-05-21T09:19:15.2443483Z ##[endgroup]
+2026-05-21T09:19:15.2445022Z ##[group]Setting up auth
+2026-05-21T09:19:15.2449228Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-05-21T09:19:15.2474828Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-05-21T09:19:15.2953062Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-05-21T09:19:15.2977032Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-05-21T09:19:15.3155540Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-05-21T09:19:15.3183524Z ##[endgroup]
+2026-05-21T09:19:15.3184959Z ##[group]Fetching the repository
+2026-05-21T09:19:15.3190242Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +781291cf48f4ecb2415e8a2c21a3572506fc4c5f:refs/remotes/origin/main
+2026-05-21T09:19:15.8332749Z From https://github.com/LnameBF/Lewis.github.io
+2026-05-21T09:19:15.8333862Z  * [new ref]         781291cf48f4ecb2415e8a2c21a3572506fc4c5f -> origin/main
+2026-05-21T09:19:15.8352001Z ##[endgroup]
+2026-05-21T09:19:15.8352379Z ##[group]Determining the checkout info
+2026-05-21T09:19:15.8354713Z ##[endgroup]
+2026-05-21T09:19:15.8359123Z [command]/usr/bin/git sparse-checkout disable
+2026-05-21T09:19:15.8388627Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-05-21T09:19:15.8410952Z ##[group]Checking out the ref
+2026-05-21T09:19:15.8414311Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-05-21T09:19:15.8553787Z Switched to a new branch 'main'
+2026-05-21T09:19:15.8555714Z branch 'main' set up to track 'origin/main'.
+2026-05-21T09:19:15.8560456Z ##[endgroup]
+2026-05-21T09:19:15.8588703Z [command]/usr/bin/git log -1 --format=%H
+2026-05-21T09:19:15.8606303Z 781291cf48f4ecb2415e8a2c21a3572506fc4c5f
+2026-05-21T09:19:15.8784122Z ##[group]Run biomejs/setup-biome@v2
+2026-05-21T09:19:15.8784514Z with:
+2026-05-21T09:19:15.8784767Z   version: 2.2.5
+2026-05-21T09:19:15.8785179Z   token: ***
+2026-05-21T09:19:15.8785454Z ##[endgroup]
+2026-05-21T09:19:15.9610312Z No working directory specified. Using the current working directory.
+2026-05-21T09:19:16.7040006Z ##[group]Run biome ci ./src --reporter=github
+2026-05-21T09:19:16.7040361Z [36;1mbiome ci ./src --reporter=github[0m
+2026-05-21T09:19:16.7076148Z shell: /usr/bin/bash -e {0}
+2026-05-21T09:19:16.7076369Z ##[endgroup]
+2026-05-21T09:19:16.7573874Z ##[error]File content differs from formatting output
+2026-05-21T09:19:16.7580337Z ##[error]The imports and exports are not sorted.
+2026-05-21T09:19:16.7581549Z ##[error]File content differs from formatting output
+2026-05-21T09:19:16.7582552Z ci ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-05-21T09:19:16.7582790Z 
+2026-05-21T09:19:16.7582949Z   × Some errors were emitted while running checks.
+2026-05-21T09:19:16.7583173Z   
+2026-05-21T09:19:16.7583259Z 
+2026-05-21T09:19:16.7586493Z ##[error]Process completed with exit code 1.
+2026-05-21T09:19:16.7665631Z Post job cleanup.
+2026-05-21T09:19:16.8408451Z [command]/usr/bin/git version
+2026-05-21T09:19:16.8436433Z git version 2.54.0
+2026-05-21T09:19:16.8468136Z Temporarily overriding HOME='/home/runner/work/_temp/bdb1f6c4-4676-4dbc-885d-f5206175933a' before making global git config changes
+2026-05-21T09:19:16.8469100Z Adding repository directory to the temporary git global config as a safe directory
+2026-05-21T09:19:16.8478426Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Lewis.github.io/Lewis.github.io
+2026-05-21T09:19:16.8506188Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-05-21T09:19:16.8532219Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-05-21T09:19:16.8715251Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-05-21T09:19:16.8732407Z http.https://github.com/.extraheader
+2026-05-21T09:19:16.8741207Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-05-21T09:19:16.8765637Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-05-21T09:19:16.9030413Z Cleaning up orphan processes
+2026-05-21T09:19:16.9307009Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
