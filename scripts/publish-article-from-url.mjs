@@ -207,8 +207,23 @@ function quoteShellArg(arg) {
 }
 
 function runCommand(command, args, cwd) {
-	const quoted = [command, ...args.map(quoteShellArg)].join(" ")
-	return runShellCommand(quoted, cwd)
+	try {
+		return execFileSync(command, args, {
+			cwd: cwd || REPO_ROOT,
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "pipe"],
+		}).trim()
+	} catch (error) {
+		if (process.platform === "win32" && error.code === "ENOENT") {
+			return execFileSync(command, args, {
+				cwd: cwd || REPO_ROOT,
+				encoding: "utf8",
+				stdio: ["ignore", "pipe", "pipe"],
+				shell: true,
+			}).trim()
+		}
+		throw error
+	}
 }
 
 function readCommandVersion(command) {
@@ -293,6 +308,8 @@ function ensureExternalProject(projectRoot) {
 
 function decodeHtml(text) {
 	return text
+		.replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 10)))
+		.replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
 		.replaceAll("&nbsp;", " ")
 		.replaceAll("&amp;", "&")
 		.replaceAll("&lt;", "<")
@@ -575,8 +592,9 @@ async function fetchArticle(url) {
 function toSafeFilename(title) {
 	return title
 		.replace(/[\\/:*?"<>|]/g, " ")
-		.replace(/[？！，。；：“”‘’（）【】《》、]/g, " ")
+		.replace(/[？！，。；："（）【】《》、×÷±]/g, " ")
 		.replace(/['’]/g, "")
+		.replace(/[^\w\s\u4e00-\u9fff\u3400-\u4dbf-]/g, " ")
 		.replace(/\s+/g, "-")
 		.replace(/-+/g, "-")
 		.replace(/^-|-$/g, "")
