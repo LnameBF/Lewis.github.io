@@ -1404,7 +1404,321 @@ pnpm install
 &lt;/ul&gt;
 &lt;p&gt;如果你也经常在多个前端项目之间切换，尤其是项目 Node 版本差异比较大，Volta 会比手动切换版本省心很多。&lt;/p&gt;
 &lt;p&gt;它不只是“安装多个 Node 版本”，更重要的是把版本管理这件事从个人习惯变成项目配置。&lt;/p&gt;
-</content:encoded></item><item><title>全新的开始.md</title><link>https://lewis.heiok.top/posts/%E5%85%A8%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E5%85%A8%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/</guid><pubDate>Tue, 12 May 2026 00:00:00 GMT</pubDate><content:encoded/></item><item><title>Simple Guides for Fuwari</title><link>https://lewis.heiok.top/posts/guide/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/guide/</guid><description>How to use this blog template.</description><pubDate>Mon, 01 Apr 2024 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+</content:encoded></item><item><title>全新的开始.md</title><link>https://lewis.heiok.top/posts/%E5%85%A8%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E5%85%A8%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/</guid><pubDate>Tue, 12 May 2026 00:00:00 GMT</pubDate><content:encoded/></item><item><title>Docker 部署 Mihomo (Clash Meta) 核心 + WebUI 指南</title><link>https://lewis.heiok.top/posts/docker-%E9%83%A8%E7%BD%B2-mihomo-clash-meta-%E6%A0%B8%E5%BF%83-webui-%E6%8C%87%E5%8D%97/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/docker-%E9%83%A8%E7%BD%B2-mihomo-clash-meta-%E6%A0%B8%E5%BF%83-webui-%E6%8C%87%E5%8D%97/</guid><description>详细介绍如何在 Docker 环境中部署 Mihomo (Clash Meta) 核心 + Metacubexd WebUI，包含完整配置文件和 TUN 模式透明代理设置</description><pubDate>Thu, 11 Dec 2025 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;流程概览&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&quot;https://cc.deepfal.cn/2025/12/11/693a93c68000a.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h2&gt;前言&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Mihomo&lt;/strong&gt;（原名 Mihomo Meta，亦即 Clash Meta）是目前 Clash 核心最活跃、功能最强大的分支。由于原始 Clash 项目删库，Mihomo 已成为各平台客户端的首选核心。&lt;/p&gt;
+&lt;p&gt;值得注意的是，Mihomo 本身是一个纯命令行程序（Core），没有图形界面。为了方便日常管理和监控，我们需要为其搭配一个 Web UI（如 Metacubexd）。本文将详细介绍如何在 Docker 环境（包括 Linux 服务器、NAS、飞牛OS等）中优雅地部署 Mihomo + WebUI，并开启 TUN 模式实现更接管更底层的流量。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2&gt;准备工作&lt;/h2&gt;
+&lt;p&gt;在开始之前，请确保您的环境满足以下条件：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Docker 环境&lt;/strong&gt;：已安装 Docker 及 Docker Compose。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;基础知识&lt;/strong&gt;：熟悉基本的命令行操作（创建文件夹、编辑文件）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;网络环境&lt;/strong&gt;：拥有可用的节点订阅链接。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;h2&gt;第一步：编写配置文件 (config.yaml)&lt;/h2&gt;
+&lt;p&gt;Mihomo 的运行核心在于配置文件。我们需要先在宿主机上准备好这个文件。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;新建一个文件夹，命名为 &lt;code&gt;mihomo&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;在其中创建一个名为 &lt;code&gt;config.yaml&lt;/code&gt; 的文件。&lt;/li&gt;
+&lt;li&gt;参考以下模板填入内容。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;⚠️ 重点修改提示：&lt;/strong&gt; 请务必修改下方模板中的 &lt;strong&gt;第 7 行&lt;/strong&gt;（API访问密钥）&lt;strong&gt;、第 20、21 行&lt;/strong&gt;（节点订阅信息）与 &lt;strong&gt;第 26 行&lt;/strong&gt;（节点名称前缀）。修改时请&lt;strong&gt;去掉尖括号 &lt;code&gt;&amp;lt; &amp;gt;&lt;/code&gt;&lt;/strong&gt;。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;pre&gt;&lt;code&gt;mixed-port: 7890
+allow-lan: true
+bind-address: &apos;*&apos;
+mode: rule
+log-level: info
+external-controller: &apos;0.0.0.0:9090&apos;
+secret: &quot;&amp;lt;API访问密钥&amp;gt;&quot;
+
+tun:
+  enable: false
+  stack: mixed
+  dns-hijack:
+    - &quot;any:53&quot;
+    - &quot;tcp://any:53&quot;
+  auto-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+
+proxy-providers:
+  &amp;lt;节点提供者名称&amp;gt;:
+    url: &quot;&amp;lt;节点订阅链接&amp;gt;&quot;
+    type: http
+    interval: 86400
+    health-check: {enable: true,url: &quot;https://www.gstatic.com/generate_204&quot;, interval: 300}
+    override:
+      additional-prefix: &quot;&amp;lt;节点名称前缀&amp;gt;&quot;
+
+proxies: 
+  - name: &quot;直连&quot;
+    type: direct
+    udp: true
+
+geodata-mode: true
+geox-url:
+  geoip: &quot;https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat&quot;
+  geosite: &quot;https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat&quot;
+  mmdb: &quot;https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb&quot;
+  asn: &quot;https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb&quot;
+
+dns:
+  enable: true
+  ipv6: true
+  respect-rules: true
+  enhanced-mode: fake-ip
+  fake-ip-filter:
+    - &quot;*&quot;
+    - &quot;+.lan&quot;
+    - &quot;+.local&quot;
+    - &quot;+.market.xiaomi.com&quot;
+  nameserver:
+    - https://120.53.53.53/dns-query
+    - https://223.5.5.5/dns-query
+  proxy-server-nameserver:
+    - https://120.53.53.53/dns-query
+    - https://223.5.5.5/dns-query
+  nameserver-policy:
+    &quot;geosite:cn,private&quot;:
+      - https://120.53.53.53/dns-query
+      - https://223.5.5.5/dns-query
+    &quot;geosite:geolocation-!cn&quot;:
+      - &quot;https://dns.cloudflare.com/dns-query&quot;
+      - &quot;https://dns.google/dns-query&quot;
+
+proxy-groups:
+
+  - name: 默认
+    type: select
+    proxies: [自动选择,直连,香港,台湾,日本,新加坡,美国,其它地区,全部节点]
+
+  - name: Google
+    type: select
+    proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: Telegram
+    type: select
+    proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: Twitter
+    type: select
+    proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: 哔哩哔哩
+    type: select
+    proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: 巴哈姆特
+    type: select
+    proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: YouTube
+    type: select
+    proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: 海外AI
+    type: select
+    proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: NETFLIX
+    type: select
+    proxies: [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: Spotify
+    type: select
+    proxies:  [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: Github
+    type: select
+    proxies:  [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  - name: 国内
+    type: select
+    proxies:  [直连,默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择]
+
+  - name: 其他
+    type: select
+    proxies:  [默认,香港,台湾,日本,新加坡,美国,其它地区,全部节点,自动选择,直连]
+
+  #分隔,下面是地区分组
+  - name: 香港
+    type: select
+    include-all: true
+    filter: &quot;(?i)港|hk|hongkong|hong kong&quot;
+
+  - name: 台湾
+    type: select
+    include-all: true
+    filter: &quot;(?i)台|tw|taiwan&quot;
+
+  - name: 日本
+    type: select
+    include-all: true
+    filter: &quot;(?i)日|jp|japan&quot;
+
+  - name: 美国
+    type: select
+    include-all: true
+    filter: &quot;(?i)美|us|unitedstates|united states&quot;
+
+  - name: 新加坡
+    type: select
+    include-all: true
+    filter: &quot;(?i)(新|sg|singapore)&quot;
+
+  - name: 其它地区
+    type: select
+    include-all: true
+    filter: &quot;(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates)).*&quot;
+
+  - name: 全部节点
+    type: select
+    include-all: true
+
+  - name: 自动选择
+    type: url-test
+    include-all: true
+    tolerance: 10
+
+rules:
+  - GEOIP,lan,直连,no-resolve
+  - GEOSITE,twitter,Twitter
+  - GEOSITE,youtube,YouTube
+  - GEOSITE,category-ai-!cn,海外AI
+  - GEOSITE,github,Github
+  - GEOSITE,google,Google
+  - GEOSITE,telegram,Telegram
+  - GEOSITE,netflix,NETFLIX
+  - GEOSITE,bilibili,哔哩哔哩
+  - GEOSITE,bahamut,巴哈姆特
+  - GEOSITE,spotify,Spotify
+  - GEOSITE,CN,国内
+  - GEOSITE,geolocation-!cn,其他
+
+  - GEOIP,CN,国内
+  - MATCH,其他
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h2&gt;第二步：构建 Docker Compose&lt;/h2&gt;
+&lt;p&gt;我们将同时部署 &lt;strong&gt;Mihomo 核心&lt;/strong&gt; 和 &lt;strong&gt;Metacubexd (WebUI)&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;在 &lt;code&gt;mihomo&lt;/code&gt; 文件夹同级或任意位置，创建 &lt;code&gt;docker-compose.yml&lt;/code&gt;。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;🌟 关键配置说明 (TUN 模式支持)：&lt;/strong&gt; 为了支持 TUN 模式（虚拟网卡），容器必须拥有网络管理权限。我们在配置中加入了 &lt;code&gt;cap_add: [NET_ADMIN]&lt;/code&gt; 和 &lt;code&gt;devices: [/dev/net/tun]&lt;/code&gt;，这是实现透明代理的关键。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;pre&gt;&lt;code&gt;version: &apos;3&apos;
+
+services:
+  # Web 管理面板
+  metacubexd:
+    container_name: metacubexd
+    #image: ghcr.io/metacubex/metacubexd
+    # 国内加速源
+    image: ghcr.1ms.run/metacubex/metacubexd
+    restart: always
+    ports:
+      - &apos;9097:80&apos; # WebUI 访问端口
+
+  # Mihomo 核心
+  mihomo:
+    container_name: mihomo
+    #image: docker.io/metacubex/mihomo:latest
+    # 国内加速源
+    image: docker.1ms.run/metacubex/mihomo:latest
+    restart: always
+    pid: host
+    ipc: host
+    network_mode: host # 推荐使用 Host 模式，性能最好且便于处理 IPv6
+    
+    # --- TUN 模式核心配置 ---
+    cap_add:
+      - NET_ADMIN      # 赋予网络管理权限
+    devices:
+      - /dev/net/tun:/dev/net/tun # 映射宿主机的 TUN 设备
+    volumes:
+      # ⚠️ 注意：冒号左边请修改为你 config.yaml 所在的实际绝对路径
+      - ./mihomo:/root/.config/mihomo
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h2&gt;第三步：启动与初始化&lt;/h2&gt;
+&lt;h3&gt;1. 启动容器&lt;/h3&gt;
+&lt;p&gt;在 &lt;code&gt;docker-compose.yml&lt;/code&gt; 所在目录执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;sudo docker-compose up -d
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果是飞牛OS等图形化系统，请直接在 Docker 管理器中&quot;使用现有 Compose 文件&quot;创建项目即可。&lt;/p&gt;
+&lt;h3&gt;2. 解决规则文件下载失败 (Fatal Error)&lt;/h3&gt;
+&lt;p&gt;初次启动时，查看日志可能会发现如下报错： &lt;code&gt;level=fatal msg=&quot;Parse config error... can&apos;t download MMDB: context deadline exceeded&quot;&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;这是因为网络环境导致容器无法自动下载 GeoIP/GeoSite 数据库。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;解决方法：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;前往 &lt;a href=&quot;https://github.com/MetaCubeX/meta-rules-dat/releases&quot;&gt;MetaCubeX/meta-rules-dat&lt;/a&gt; 下载以下文件：
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;geoip.dat&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;geosite.dat&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;country-lite.mmdb&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;GeoLite2-ASN.mmdb&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;将这4个文件手动上传到宿主机的 &lt;code&gt;mihomo&lt;/code&gt; 文件夹（与 &lt;code&gt;config.yaml&lt;/code&gt; 同级）。&lt;/li&gt;
+&lt;li&gt;重启容器：&lt;code&gt;sudo docker-compose restart mihomo&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;hr /&gt;
+&lt;h2&gt;第四步：配置 WebUI&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;打开浏览器访问：&lt;code&gt;http://设备IP:9097&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;进入设置页面，添加后端：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API Base URL&lt;/strong&gt;: &lt;code&gt;http://设备IP:9090&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Secret&lt;/strong&gt;: 在 config 第 6 行设置的 &lt;strong&gt;API 访问密钥&lt;/strong&gt;
+&lt;img src=&quot;https://cc.deepfal.cn/2025/12/11/693a5d740ccde.png&quot; alt=&quot;&quot; /&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;点击添加，连接成功后即可看到流量仪表盘和节点选择界面。
+&lt;img src=&quot;https://cc.deepfal.cn/2025/12/11/693a5d9de6e90.png&quot; alt=&quot;&quot; /&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;hr /&gt;
+&lt;h2&gt;进阶：关于 TUN 模式与透明代理&lt;/h2&gt;
+&lt;p&gt;TUN 模式允许 Mihomo 创建一个虚拟网卡，接管设备上所有层级的流量（包括不走系统代理的终端命令、游戏等）。&lt;/p&gt;
+&lt;h3&gt;为什么需要特殊权限？&lt;/h3&gt;
+&lt;p&gt;在 Docker 中，默认容器是没有权限创建网络设备的。要启用 TUN 模式，必须在启动参数中显式声明：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;--cap-add=NET_ADMIN&lt;/code&gt;：允许容器修改网络堆栈。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;--device=/dev/net/tun&lt;/code&gt;：允许容器访问 Linux 的 TUN 字符设备。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;在本文提供的 &lt;code&gt;docker-compose.yml&lt;/code&gt; 中，我们已经默认添加了这两项配置。&lt;/p&gt;
+&lt;h3&gt;如何启用？&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;确保 Docker 配置已包含上述权限参数。&lt;/li&gt;
+&lt;li&gt;在 WebUI 的设置页面中勾选 &lt;strong&gt;TUN 模式&lt;/strong&gt;。&lt;/li&gt;
+&lt;li&gt;或者在 &lt;code&gt;config.yaml&lt;/code&gt; 中将 &lt;code&gt;tun: enable&lt;/code&gt; 设置为 &lt;code&gt;true&lt;/code&gt; 并重启容器。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;此时，配合路由表的设置，Mihomo 即可变身为一个网关，实现透明代理。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2&gt;Q&amp;amp;A 常见问题&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Q1: &quot;Failed to fetch&quot; 无法连接后端？&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;A:&lt;/strong&gt; 检查 WebUI 中填写的后端地址端口是否为 &lt;code&gt;9090&lt;/code&gt;（不是 9097），并确保 &lt;code&gt;config.yaml&lt;/code&gt; 中 &lt;code&gt;external-controller&lt;/code&gt; 监听的是 &lt;code&gt;0.0.0.0:9090&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Q2: 为什么不使用在线版的 WebUI (如 yacd)？&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;A:&lt;/strong&gt; 在线版面板（通常是 HTTPS）因浏览器安全策略（混合内容拦截），往往无法连接到你本地的 HTTP 后端（Mihomo）。使用 Docker 自建本地版 WebUI 最稳定。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Q3: 如何在其他设备上使用这个代理？&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;A:&lt;/strong&gt; 在其他设备（手机/电脑）的 Wi-Fi 代理设置中，填入 &lt;code&gt;IP: 宿主机IP&lt;/code&gt;，端口: &lt;code&gt;7890&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;h3&gt;相关链接&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/MetaCubeX/mihomo&quot;&gt;Mihomo 项目仓库&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://wiki.metacubex.one/&quot;&gt;Mihomo 官方文档&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;https://github.com/MetaCubeX/metacubexd&quot;&gt;Metacubexd 面板仓库&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content:encoded></item><item><title>Simple Guides for Fuwari</title><link>https://lewis.heiok.top/posts/guide/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/guide/</guid><description>How to use this blog template.</description><pubDate>Mon, 01 Apr 2024 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
 &lt;p&gt;Cover image source: &lt;a href=&quot;https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/208fc754-890d-4adb-9753-2c963332675d/width=2048/01651-1456859105-(colour_1.5),girl,_Blue,yellow,green,cyan,purple,red,pink,_best,8k,UHD,masterpiece,male%20focus,%201boy,gloves,%20ponytail,%20long%20hair,.jpeg&quot;&gt;Source&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;This blog template is built with &lt;a href=&quot;https://astro.build/&quot;&gt;Astro&lt;/a&gt;. For the things that are not mentioned in this guide, you may find the answers in the &lt;a href=&quot;https://docs.astro.build/&quot;&gt;Astro Docs&lt;/a&gt;.&lt;/p&gt;
