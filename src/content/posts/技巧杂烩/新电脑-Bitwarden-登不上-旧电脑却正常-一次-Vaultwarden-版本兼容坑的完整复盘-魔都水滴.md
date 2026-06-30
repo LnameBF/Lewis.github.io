@@ -4,7 +4,7 @@ published: 2026-06-23
 description: ''
 image: ''
 tags: ['Docker', 'API', '浏览器']
-category: '后端'
+category: '技巧杂烩'
 draft: false
 lang: 'zh-CN'
 ---
