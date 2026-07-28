@@ -1,6 +1,7 @@
 ---
 title: '从 0 到 1 搭建 AI 知识库：obsidian-wiki 完整实操（保姆级教程）'
 published: 2026-07-20
+updated: 2026-07-22
 description: ''
 image: ''
 tags: ['知识库', 'RAG', 'Obsidian']
@@ -11,6 +12,7 @@ lang: 'zh-CN'
 
 > 原文链接：https://juejin.cn/post/7637823184209494051
 > 抓取时间：2026-07-20 11:25:04
+> 更新说明：本文已在 2026-07-22 根据 obsidian-wiki 官方 README / PyPI 的最新安装方式校正；原文中的 `npx skills add` 已改为旧方式说明。
 
 从 0 到 1 搭建 AI 知识库：obsidian-wiki 完整实操（保姆级教程）
  
@@ -27,7 +29,7 @@ lang: 'zh-CN'
  
 ## 从 0 到 1 搭建 AI 知识库：obsidian-wiki 完整实操（保姆级教程）
 
-> 一个 npx 命令，让 Claude Code / Cursor / Codex 自动维护你的私人维基。本文带你从环境准备到日常工作流，把 Karpathy 的 LLM Wiki 模式 完整跑通一遍。
+> 用 pip 安装 obsidian-wiki，让 Claude Code / Codex 等 AI Agent 自动维护你的私人维基。本文带你从环境准备到日常工作流，把 Karpathy 的 LLM Wiki 模式完整跑通一遍。
 
 ### 一、写在前面：你是不是也卡在这里
 
@@ -50,14 +52,14 @@ Andrej Karpathy 在他那条经典的 LLM Wiki gist 里给出过一个朴素方�
 
 > Compile knowledge once into interconnected markdown files, then let the LLM keep them current.
 
-把知识编译一次，然后让 LLM 帮你维护。今天要讲的 [obsidian-wiki](https://link.juejin.cn?target=https%3A%2F%2Fgithub.com%2FAr9av%2Fobsidian-wiki)（GitHub 1.1k★，MIT，最新版本 v2026.05）就是这个模式的完整工程化落地。
+把知识编译一次，然后让 LLM 帮你维护。今天要讲的 [obsidian-wiki](https://link.juejin.cn?target=https%3A%2F%2Fgithub.com%2FAr9av%2Fobsidian-wiki)（GitHub 1.1k★，MIT；截至 2026-07-22，PyPI 版本为 2026.7.8）就是这个模式的完整工程化落地。
 
 读完本文你会得到：
 
  
 - ✅ 一个 会自我维护 的本地知识库（Obsidian vault）
 
-- ✅ 一套从 13+ 个斜杠命令组成的工作流（ /wiki-ingest 、 /wiki-query 、 /wiki-update …）
+- ✅ 一套由 Agent skills 组成的工作流（Claude Code 用 /wiki-ingest、/wiki-query、/wiki-update；Codex 通常用 $wiki-ingest、$wiki-query、$wiki-update）
 
 - ✅ 把 Claude/Codex 历史对话 自动蒸馏 为知识页面的能力
 
@@ -82,12 +84,12 @@ obsidian-wiki/
 │ ├── wiki-ingest/ SKILL .md ← 教 LLM 怎么蒸馏文档
 │ ├── wiki-query/ SKILL .md ← 教 LLM 怎么从 wiki 找答案
 │ └── ... 13 + 个 skill
-├── CLAUDE .md / GEMINI.md / AGENTS.md ← 给不同代理的引导
+├── CLAUDE.md / GEMINI.md / AGENTS.md ← 给不同代理的引导
 ├── .cursor/rules/ .windsurf/rules/ .kiro/steering/
-└── setup.sh ← 一键把 skill symlink 到所有代理目录
+└── obsidian_wiki/cli.py ← pip 版 CLI，负责 setup / doctor / cache / ast-extract
 ```
 
- 支持的代理 （截至 v2026.05）：Claude Code、Cursor、Windsurf、Gemini CLI、Codex、GitHub Copilot（VS Code & CLI）、Aider、Hermes、OpenClaw、OpenCode、Factory Droid、Trae、Kiro。本文以 Claude Code 为主线演示，其他代理流程几乎一致。
+ 支持的代理会随版本更新。当前 pip 版 setup 会把 skills 安装到 Claude Code、Codex、Gemini CLI、Hermes、OpenClaw、GitHub Copilot CLI、Trae、Kiro、Pi、通用 `.agents` 等全局目录；项目本地安装还会写入 Claude、Cursor、Windsurf 等目录。本文以 Claude Code 为主线演示，并在关键位置补充 Codex 的写法。
 
  核心工作原理：四阶段管线 
 
@@ -107,14 +109,14 @@ obsidian-wiki/
  [4] Schema ── 维护 schema 一致性、补 wikilinks
  │
  ▼
- 生成 wiki 页面 + 更新 .manifest .json 
+ 生成 wiki 页面 + 更新 .manifest.json
 ```
 
 每条声明都会被打上 extracted （直接抽自原文）/ inferred （推断）/ ambiguous （存疑）三类来源标签写入 frontmatter，可追溯性比一般「用 AI 总结」高了一个量级。
 
  Delta 跟踪 
 
- .manifest.json 会记录每个 source 的路径、时间戳、对应生成的 wiki 页面。下次再跑 /wiki-ingest 时， 只处理新增 / 修改过的文件 ，不会重复花 token。
+ .manifest.json 会记录每个 source 的路径、内容 hash、时间戳、对应生成的 wiki 页面。下次再跑 /wiki-ingest 时， 只处理新增 / 修改过的文件 ，不会重复花 token。
 
  
 
@@ -122,7 +124,15 @@ obsidian-wiki/
 
 下面这几样在动手之前先确认到位：
 
- 工具 是否必需 用途 安装方式 Obsidian 必需 浏览生成的 vault、看图谱 [obsidian.md](https://link.juejin.cn?target=https%3A%2F%2Fobsidian.md%2F) 官网下载 Node.js ≥ 18 必需 跑 npx skills add brew install node 或 nvm AI 代理 必需（任选一个） 真正去执行 skill 推荐 Claude Code Git 推荐 备选安装方式 系统自带或 brew install git QMD 可选 语义搜索 后面单独讲 
+| 工具 | 是否必需 | 用途 | 安装方式 |
+|---|---|---|---|
+| Obsidian | 必需 | 浏览生成的 vault、看图谱 | [obsidian.md](https://link.juejin.cn?target=https%3A%2F%2Fobsidian.md%2F) 官网下载 |
+| Python ≥ 3.9 | 必需 | 安装 obsidian-wiki CLI | Windows 推荐用 `py -m pip` |
+| AI 代理 | 必需（任选一个） | 真正去执行 skill | 推荐 Claude Code 或 Codex |
+| Git | 推荐 | 备份 vault、使用源码安装方式 | 系统自带或包管理器安装 |
+| Node.js ≥ 18 | 仅旧安装方式需要 | 运行已 deprecated 的 `npx skills add` | nvm / 官方安装包 |
+| QMD | 可选 | 语义搜索 | 后面单独讲 |
+
  1. 装 Obsidian、新建空 vault 
 
 打开 Obsidian → 「Create new vault」→ 选一个空目录，比如 ~/ObsidianVault 。 记住这个绝对路径 ，下面要用。
@@ -134,64 +144,86 @@ npm install -g @anthropic-ai/claude-code
 claude --version # 应该输出版本号 
 ```
 
-如果你用的是 Cursor / Windsurf / Codex，跳过即可，setup 脚本会自动给它们也装上 skill。
+如果你用的是 Cursor / Windsurf / Codex，跳过即可；后面的 `obsidian-wiki setup` 会把 skills 写到对应 Agent 能发现的位置。
 
  
 
-### 四、安装 obsidian-wiki：两种方式任选
+### 四、安装 obsidian-wiki：推荐 pip + setup
 
- 方式 A： npx skills add （最快，推荐） 
+官方现在推荐通过 PyPI 安装 `obsidian-wiki` CLI，再用 `obsidian-wiki setup` 写入全局配置并安装 skills。旧的 `npx skills add Ar9av/obsidian-wiki` 仍可能可用，但已经被标记为 deprecated；它主要安装 Markdown skills，不会完整写入 `~/.obsidian-wiki/config`，也不提供 CLI 的 doctor、cache、AST 提取等能力。
 
+ 方式 A：pip 安装（推荐）
+
+Windows 推荐显式使用 `py -m pip`，避免多 Python 版本时把包装到错误环境：
+
+```powershell
+py -m pip install -U obsidian-wiki
+obsidian-wiki setup --vault "E:\opc\opc_know" --copy
+obsidian-wiki doctor
+obsidian-wiki info
 ```
-npx skills add Ar9av/obsidian-wiki
+
+如果 `obsidian-wiki` 提示不是可识别命令，通常是 Python 的 `Scripts` 目录没进 PATH，可以临时改用：
+
+```powershell
+py -m obsidian_wiki.cli setup --vault "E:\opc\opc_know" --copy
+py -m obsidian_wiki.cli doctor
 ```
 
-这一条命令会：
+macOS / Linux 写法类似：
 
- 
-- 把 .skills/* 安装到当前用户的全局 skill 目录
-
-- 自动识别本机已装的 AI 代理，写入对应的 skills 路径
-
- 
- 方式 B：git clone + setup.sh（看得见摸得着） 
-
-如果你想看清楚每一步发生了什么，推荐这种：
-
+```bash
+python3 -m pip install -U obsidian-wiki
+obsidian-wiki setup --vault "$HOME/ObsidianVault"
+obsidian-wiki doctor
+obsidian-wiki info
 ```
+
+`setup` 会做这些事：
+
+- 把内置 skills 安装到支持的全局 Agent 目录，例如 `~/.claude/skills/`、`~/.codex/skills/`、`~/.gemini/skills/` 等。
+- 创建 `~/.obsidian-wiki/config`，写入 `OBSIDIAN_VAULT_PATH`，让 Agent 在任意项目目录都能找到 vault。
+- 检查 vault 基础结构和必需文件，例如 `index.md`、`log.md`、`hot.md`、`.manifest.json`。
+- `--copy` 会复制 skill 文件而不是 symlink，Windows 上更少遇到权限或开发者模式问题。
+
+如果你只使用 Claude Code 和 Codex，多安装到其他 Agent 目录通常没有副作用；不用那些 Agent，它们就不会读取这些 skills。
+
+ 方式 B：git clone + setup.sh（源码调试时再用）
+
+如果你想看清楚每一步发生了什么，或者准备改 obsidian-wiki 自身，再考虑源码安装：
+
+```bash
 git clone https://github.com/Ar9av/obsidian-wiki.git
- cd obsidian-wiki
+cd obsidian-wiki
 bash setup.sh
 ```
 
- setup.sh 会做这些事：
+ 方式 C：npx skills add（旧方式，不推荐新手使用）
 
- 
-- 创建项目本地 skill 目录： .claude/skills/ 、 .cursor/skills/ 、 .windsurf/skills/ 、 .kiro/skills/ 、 .agents/skills/ 
+```bash
+npx skills add Ar9av/obsidian-wiki
+```
 
-- 创建全局 skill 目录： ~/.claude/skills/ 、 ~/.gemini/skills/ 、 ~/.codex/skills/ 、 ~/.hermes/skills/ 、 ~/.copilot/skills/ 、 ~/.trae/skills/ …
-
-- 把 .skills/* symlink 到上面所有目录
-
-- 创建 ~/.obsidian-wiki/config ，写入 OBSIDIAN_VAULT_PATH 与 OBSIDIAN_WIKI_REPO 
-
-- 从 .env.example 复制一份 .env （如不存在）
-
-- 询问你： "Where is your Obsidian vault? (absolute path):" 
-
- 
-
-把第二步在 Obsidian 里记住的那个路径粘贴进去回车即可。
+这条命令更像“只安装 skill 说明书”。如果你后面要长期维护 vault、做增量检查、跑 `doctor`、`cache-check`、`ast-extract`，还是建议切到 pip 版。
 
  验证安装 
 
+```bash
+obsidian-wiki list
+obsidian-wiki doctor
+obsidian-wiki info
 ```
- ls ~/.claude/skills | grep wiki
+
+也可以检查对应 Agent 的目录：
+
+```bash
+ls ~/.claude/skills | grep wiki
+ls ~/.codex/skills | grep wiki
 ```
 
 应该看到至少这些条目：
 
-```
+```text
 wiki-setup
 wiki-ingest
 wiki-query
@@ -199,7 +231,7 @@ wiki-update
 wiki-history-ingest
 wiki-research
 wiki-lint
-wiki- export 
+wiki-export
 wiki-rebuild
 wiki-status
 wiki-capture
@@ -208,7 +240,7 @@ tag-taxonomy
 graph-colorize
 ```
 
-如果一条都没有，看下 ~/.obsidian-wiki/config 是否生成成功，多半是 setup.sh 中途被打断。
+如果一条都没有，优先跑 `obsidian-wiki doctor` 看是 config、vault 路径，还是 Agent skill 目录没写成功。
 
  
 
@@ -218,11 +250,10 @@ graph-colorize
 
  1. ~/.obsidian-wiki/config （全局） 
 
-由 setup.sh 写入，所有代理共用：
+由 `obsidian-wiki setup` 写入，所有代理共用：
 
 ```
 OBSIDIAN_VAULT_PATH=/Users/you/ObsidianVault
-OBSIDIAN_WIKI_REPO=/Users/you/code/obsidian-wiki
 ```
 
  2. .env （项目级，可覆盖全局） 
@@ -246,9 +277,6 @@ OBSIDIAN_MAX_PAGES_PER_INGEST=15
 CLAUDE_HISTORY_PATH=
 CODEX_HISTORY_PATH=
 
- # 可选：lint 频次 
-LINT_SCHEDULE=manual # daily | weekly | manual 
-
  # 可选：链接格式 
 OBSIDIAN_LINK_FORMAT=wikilink # 或 markdown 
 
@@ -258,18 +286,62 @@ OBSIDIAN_RAW_DIR=_raw
  # 可选（QMD 语义搜索用） 
 QMD_WIKI_COLLECTION=wiki
 QMD_PAPERS_COLLECTION=papers
+QMD_TRANSPORT=mcp # 或 cli
 ```
 
-新手只填 OBSIDIAN_VAULT_PATH 一个就够，其他全部用默认。
+新手只填 `OBSIDIAN_VAULT_PATH` 一个就够，其他全部用默认。多项目用户建议在每个项目根目录放自己的 `.env`，这样同一个总 vault 可以区分不同项目的 source。例如：
+
+```env
+OBSIDIAN_VAULT_PATH=E:\opc\opc_know
+OBSIDIAN_SOURCES_DIR=E:\opc\forum-mini-app-new-ui\data
+OBSIDIAN_LINK_FORMAT=wikilink
+```
+
+也就是说，`OBSIDIAN_VAULT_PATH` 指向“结果库”，`OBSIDIAN_SOURCES_DIR` 指向“这个项目要摄入的资料/日志目录”。以 `forum-mini-app-new-ui` 为例，可以直接在项目根目录创建 `.env`：
+
+```powershell
+cd "E:\opc\forum-mini-app-new-ui"
+New-Item -ItemType File -Force .env
+```
+
+然后写入：
+
+```env
+OBSIDIAN_VAULT_PATH=E:\opc\opc_know
+OBSIDIAN_SOURCES_DIR=E:\opc\forum-mini-app-new-ui\data
+OBSIDIAN_LINK_FORMAT=wikilink
+```
+
+之后在这个项目根目录启动 Agent：
+
+```powershell
+cd "E:\opc\forum-mini-app-new-ui"
+codex
+```
+
+第一次建议先跑：
+
+```text
+$wiki-update
+$wiki-ingest
+```
+
+`$wiki-update` 负责读取项目代码、README、配置和 git log，建立项目概览；`$wiki-ingest` 负责读取 `data` 目录里的维护日志和资料。最终会把结果写入：
+
+```text
+E:\opc\opc_know\projects\forum-mini-app-new-ui\
+```
+
+后续再增加其它项目时，只要在各自项目根目录放自己的 `.env`，把 `OBSIDIAN_VAULT_PATH` 指向同一个结果库，把 `OBSIDIAN_SOURCES_DIR` 指向该项目的资料目录即可。
 
  
 
 ### 六、第一次启动：让代理把 vault 结构搭起来
 
-打开终端，cd 到你 Obsidian vault 所在的目录（或任何工作目录），启动 Claude Code：
+打开终端，cd 到你 Obsidian vault 所在的目录、项目目录，或任何工作目录，启动 Claude Code：
 
 ```
- cd ~/ObsidianVault # 任意目录都行 
+cd ~/ObsidianVault # 任意目录都行
 claude
 ```
 
@@ -285,10 +357,18 @@ Claude Code 会自动识别这是 wiki-setup skill 的触发短语并执行。�
  > /wiki-setup 
 ```
 
+如果你用的是 Codex，直接说自然语言也能触发 skill，例如：
+
+```text
+set up my wiki
+```
+
+显式调用时，Codex 里更常见的写法是 `$wiki-setup`、`$wiki-ingest`、`$wiki-query` 这一类 `$skill-name` 形式。
+
 执行结束你的 vault 应该长这样：
 
 ```
-~ /ObsidianVault/ 
+~/ObsidianVault/
 ├── concepts/ ← 概念页
 ├── entities/ ← 人物/组织/产品
 ├── skills/ ← 技能/方法论
@@ -298,10 +378,12 @@ Claude Code 会自动识别这是 wiki-setup skill 的触发短语并执行。�
 ├── projects/ ← 按项目组织的知识
 ├── _archives/ ← 快照归档（rebuild/restore 用）
 ├── _raw/ ← 暂存区（草稿、未分类的卡片）
-├── . obsidian / ← Obsidian 配置（vault 识别）
-├── index. md ← vault 主入口（自动维护）
-├── log. md ← ingest 操作日志
-└── hot. md ← 近期活动语义快照（~ 500 字，每次写操作后更新）
+├── _staging/ ← 可选：人工审核队列
+├── .obsidian/ ← Obsidian 配置（vault 识别）
+├── index.md ← vault 主入口（自动维护）
+├── log.md ← ingest 操作日志
+├── hot.md ← 近期活动语义快照（~500 字，每次写操作后更新）
+└── .manifest.json ← 增量追踪清单
 ```
 
  几个关键文件值得打开看一眼 ：
@@ -311,7 +393,7 @@ Claude Code 会自动识别这是 wiki-setup skill 的触发短语并执行。�
 
 - log.md ：每次 ingest / update 的操作记录，方便追溯哪批资料是什么时候进来的。
 
-- _raw/ ：草稿暂存区，把粗糙的笔记扔进来， /wiki-ingest 会自动提升为正式页面并删除原文件。
+- _raw/ ：草稿暂存区，把粗糙的笔记扔进来， /wiki-ingest 会自动提升为正式页面，并把原始草稿移到 `_raw/_archived/`，避免下次重复处理。
 
  
  
@@ -340,7 +422,13 @@ Claude Code 会自动识别这是 wiki-setup skill 的触发短语并执行。�
  > /wiki-ingest 
 ```
 
-Claude Code 会进入四阶段流程，控制台输出大致长这样：
+Codex 中对应写：
+
+```text
+$wiki-ingest
+```
+
+Agent 会进入四阶段流程，控制台输出大致长这样：
 
 ```
 [ 1/4 Ingest ] Reading 1 new source: llm-rate-limiting.md
@@ -367,18 +455,21 @@ synthesis/
 每个页面顶部 frontmatter 大致这样：
 
 ```
- --- 
- title: Token Bucket Algorithm 
- category: concepts 
- sources: 
- - path: _raw/llm-rate-limiting.md 
- extracted: 0.7 
- inferred: 0.3 
- tags: [ rate-limiting , algorithms ]
- created: 2026-05-10 
- updated: 2026-05-10 
- ---
- 
+---
+title: Token Bucket Algorithm
+category: concepts
+sources:
+  - _raw/llm-rate-limiting.md
+tags: [rate-limiting, algorithms]
+provenance:
+  extracted: 0.7
+  inferred: 0.3
+  ambiguous: 0.0
+base_confidence: 0.65
+lifecycle: draft
+created: 2026-05-10
+updated: 2026-05-10
+---
 ```
 
  extracted: 0.7 / inferred: 0.3 的含义是：这一页 70% 来自原文直接抽取，30% 是 LLM 基于语义推断的——出现冲突时你知道该重点核对哪部分。
@@ -389,6 +480,12 @@ synthesis/
 
 ```
  > /wiki-ingest 
+```
+
+Codex 中对应写：
+
+```text
+$wiki-ingest
 ```
 
 输出会变成：
@@ -405,6 +502,12 @@ synthesis/
 
 ```
  > /wiki-query 我之前调过哪些 Anthropic API 速率限制相关的坑？ 
+```
+
+Codex 中对应写：
+
+```text
+$wiki-query 我之前调过哪些 Anthropic API 速率限制相关的坑？
 ```
 
 它的检索是分层的： 先扫所有页面的 title / tags / summary，命中后才打开具体页面读全文 ——大 vault 也跑得动。
@@ -430,6 +533,12 @@ claude
 > /wiki-update
 ```
 
+如果你用 Codex，在项目根目录直接写：
+
+```text
+$wiki-update
+```
+
  wiki-update 会：
 
  
@@ -451,6 +560,12 @@ claude
 
 ```
  > /wiki-history-ingest claude 
+```
+
+Codex 中对应写：
+
+```text
+$wiki-history-ingest claude
 ```
 
 也支持其它代理的历史：
@@ -487,6 +602,12 @@ claude
  > /wiki-research 量化交易里的市场微结构 
 ```
 
+Codex 中对应写：
+
+```text
+$wiki-research 量化交易里的市场微结构
+```
+
 它会：
 
  
@@ -515,7 +636,7 @@ vault 用一阵子之后会出现断链、孤立页、tag 拼写不一致等问�
  > /tag-taxonomy # 统一 tag 词汇（合并 #api 与 #API、#apis） 
 ```
 
-建议把 /wiki-lint 和 /cross-linker 放进每周一次的 cron 风格习惯里。 .env 里 LINT_SCHEDULE=weekly 也能让代理在合适的时机主动提醒。
+建议把 /wiki-lint 和 /cross-linker 放进每周一次的习惯里。它们是人工触发的维护动作：先看状态，再清理链接和标签，比让 vault 靠感觉自然增长靠谱得多。
 
  
 
@@ -544,11 +665,11 @@ Obsidian 左侧功能区有个"连接网络"图标；或按 Ctrl/Cmd + P ，输�
 会在 vault 根目录生成 wiki-export/ ：
 
 ```
-wiki- export /
-├── graph. json ← 通用 JSON 
-├── graph. graphml ← 给 Gephi / yEd
-├── cypher. txt ← 给 Neo4 j
-└── graph. html ← 一个独立、可点击的浏览器可视化
+wiki-export/
+├── graph.json ← 通用 JSON
+├── graph.graphml ← 给 Gephi / yEd
+├── cypher.txt ← 给 Neo4j
+└── graph.html ← 一个独立、可点击的浏览器可视化
 ```
 
 最实用的是 graph.html ——双击打开浏览器就能交互浏览，分享给同事不需要他装 Obsidian。
@@ -557,16 +678,19 @@ wiki- export /
 
 ### 十四、可选：开启 QMD 语义搜索
 
-默认情况下 obsidian-wiki 用 grep / glob 找文件——能用，但只能精确字符串匹配。安装 [QMD](https://link.juejin.cn?target=https%3A%2F%2Fgithub.com%2Fqmd) 后可以走"概念级"语义搜索。
+默认情况下 obsidian-wiki 用 grep / glob 找文件——能用，但只能精确字符串匹配。安装 [QMD](https://link.juejin.cn?target=https%3A%2F%2Fgithub.com%2Ftobi%2Fqmd) 后可以走"概念级"语义搜索。
 
  .env 里启用：
 
 ```
 QMD_WIKI_COLLECTION=wiki
 QMD_PAPERS_COLLECTION=papers
+QMD_TRANSPORT=mcp # 或 cli
+# 如果用 CLI，还可以按机器性能选择：quality / balanced / fast
+QMD_CLI_SEARCH_MODE=quality
 ```
 
-启用后 /wiki-query 检索质量会显著提升，但代价是要本地跑一个 MCP 服务。如果你在 vault 还小（< 200 页）的阶段，可以先不开。
+启用后 /wiki-query 检索质量会显著提升。`QMD_TRANSPORT=mcp` 适合已经把 QMD 接成 MCP 的 Agent；`cli` 模式则会调用本机 `qmd` 命令。如果你在 vault 还小（< 200 页）的阶段，可以先不开。
 
  
 
@@ -577,9 +701,16 @@ QMD_PAPERS_COLLECTION=papers
  每天（5 min） 
 
 ```
- cd 
+cd ~/projects/my-cool-app
 claude
 > /wiki-update # 把今天的新增蒸馏进 vault 
+```
+
+Codex 用户则在项目根目录写：
+
+```text
+$wiki-update
+$wiki-ingest # 如果项目 .env 配了 OBSIDIAN_SOURCES_DIR，就会处理对应资料/日志目录
 ```
 
  每周（10-15 min） 
@@ -609,15 +740,28 @@ claude
 
 ### 十六、常见问题排查
 
- Q1：在代理里输 /wiki-setup 显示找不到 skill。 
+Q1：在代理里输 /wiki-setup 显示找不到 skill。
 
 检查：
 
 ```
- ls ~/.claude/skills/ | grep wiki-setup
+obsidian-wiki doctor
+obsidian-wiki info
+ls ~/.claude/skills/ | grep wiki-setup
+ls ~/.codex/skills/ | grep wiki-setup
 ```
 
-为空的话重新跑 bash setup.sh ，注意它最后那个 vault path 提问要回答。
+为空的话重新跑：
+
+```bash
+obsidian-wiki setup --vault "/path/to/ObsidianVault"
+```
+
+Windows 上建议加 `--copy`：
+
+```powershell
+obsidian-wiki setup --vault "E:\opc\opc_know" --copy
+```
 
  Q2： /wiki-ingest 跑完没生成任何页面。 
 
@@ -634,7 +778,7 @@ claude
 
  Q3：环境变量改了但代理像没读到。 
 
- .env 是项目级覆盖、 ~/.obsidian-wiki/config 是全局。代理读取顺序优先项目 .env 。改完后 新开一个 claude 对话 重新加载。
+ .env 是项目级覆盖、 ~/.obsidian-wiki/config 是全局。代理读取顺序优先项目 .env 。改完后新开一个 Claude Code / Codex 对话重新加载。
 
  Q4：ingest 一直在重新处理同一份文件。 
 
@@ -646,7 +790,27 @@ claude
 
  Q6：能用 Cursor / Codex 吗？ 
 
-完全可以。 setup.sh 已自动 symlink 到 ~/.cursor/skills/ 、 ~/.codex/skills/ 等。在对应代理里同样的斜杠命令直接可用。
+完全可以。pip 版 `setup` 会安装到 `~/.codex/skills/` 等全局目录。Claude Code 通常使用 `/wiki-ingest` 这种斜杠命令；Codex 更常见的显式写法是 `$wiki-ingest`、`$wiki-query`、`$wiki-update`。
+
+ Q7：Windows 上 `obsidian-wiki` 提示不是可识别命令怎么办？
+
+先确认包到底装在哪个 Python：
+
+```powershell
+py -m pip show obsidian-wiki
+py -m pip --version
+python -m pip --version
+pip --version
+```
+
+如果 `py -m pip` 显示已安装，但 `obsidian-wiki` 找不到，通常是 Python 的 `Scripts` 目录没进 PATH。可以临时用模块入口：
+
+```powershell
+py -m obsidian_wiki.cli doctor
+py -m obsidian_wiki.cli setup --vault "E:\opc\opc_know" --copy
+```
+
+长期修复则把对应 Python 的 `Scripts` 目录加入 PATH，例如 `D:\python\312\Scripts`。
 
  
 
@@ -667,10 +831,11 @@ claude
 
  
 
-如果你已经是 Claude Code / Cursor 的重度用户，这是我今年遇到 性价比最高的一个 skill 集合 。30 分钟装好之后，你会越用 vault 越大、越用越值钱。
+如果你已经是 Claude Code / Codex 的重度用户，这是我今年遇到性价比很高的一个 skill 集合。30 分钟装好之后，你会越用 vault 越大、越用越值钱。
 
 > 进一步阅读
-> 项目仓库： Ar9av/obsidian-wiki
+> 项目仓库： [Ar9av/obsidian-wiki](https://github.com/Ar9av/obsidian-wiki)
+> PyPI： [obsidian-wiki](https://pypi.org/project/obsidian-wiki/)
 > Karpathy 的原始 LLM Wiki gist：搜索 "Karpathy LLM Wiki"
 > 配套推荐： kepano/obsidian-skills （Bases / Canvas / 高级 markdown 语法）
 
