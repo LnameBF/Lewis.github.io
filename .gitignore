@@ -31,3 +31,4 @@ yarn.lock
 *.iml
 .worktrees/
 .claude/worktrees/
+.claude/settings.local.json
