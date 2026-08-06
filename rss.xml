@@ -1,4 +1,225 @@
-<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>英国 Vodafone PayGo 保号卡 - AceSheep</title><link>https://lewis.heiok.top/posts/%E6%8A%80%E5%B7%A7%E6%9D%82%E7%83%A9/%E8%8B%B1%E5%9B%BD-vodafone-paygo-%E4%BF%9D%E5%8F%B7%E5%8D%A1-acesheep/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E6%8A%80%E5%B7%A7%E6%9D%82%E7%83%A9/%E8%8B%B1%E5%9B%BD-vodafone-paygo-%E4%BF%9D%E5%8F%B7%E5%8D%A1-acesheep/</guid><pubDate>Tue, 28 Jul 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>MCP plugins： CodeGraph</title><link>https://lewis.heiok.top/posts/mcp-plugins-codegraph/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/mcp-plugins-codegraph/</guid><description>CodeGraph 爆火：编程 Agent 需要的不是更多上下文，而是一张提前画好的代码地图</description><pubDate>Thu, 06 Aug 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+&lt;p&gt;原文链接：https://www.cnblogs.com/tommymarc/p/20562646
+抓取时间：2026-08-06 09:56:38&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3&gt;CodeGraph 爆火：编程 Agent 需要的不是更多上下文，而是一张提前画好的代码地图&lt;/h3&gt;
+&lt;p&gt;最近 GitHub 上有个 TypeScript 项目涨得很猛：&lt;code&gt;colbymchenry/codegraph&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;你给到的榜单数据是：本周新增 Star &lt;code&gt;+15,909&lt;/code&gt;，总 Star &lt;code&gt;19,392&lt;/code&gt;。我又查了一圈公开信息，发现这个数字还在快速变化：第三方仓库统计站 GitGenius 在 2026 年 5 月下旬抓到的总 Star 已经超过 &lt;code&gt;20k&lt;/code&gt;。这种短时间内的跳涨，通常说明它不只是“又一个 MCP 工具”，而是踩中了编程 Agent 当前非常具体的痛点。&lt;/p&gt;
+&lt;p&gt;这个痛点可以一句话概括：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Agent 写代码之前，太多时间花在“找代码”上。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Claude Code、Cursor、Codex CLI、OpenCode 这类编程 Agent 在接手一个中大型项目时，第一件事往往不是改代码，而是反复调用 &lt;code&gt;grep&lt;/code&gt;、&lt;code&gt;glob&lt;/code&gt;、&lt;code&gt;Read&lt;/code&gt;、&lt;code&gt;ls&lt;/code&gt;，从文件名、函数名、调用链里一点点拼出代码结构。这个过程很像一个新同事入职第一天：不是不会写代码，而是不知道门在哪里、谁调用谁、改一个接口会碰到哪些地方。&lt;/p&gt;
+&lt;p&gt;CodeGraph 的思路很直接：不要让 Agent 每次都现场翻箱倒柜。先把代码库解析一遍，构造成一个本地知识图谱，再让 Agent 按结构查询。&lt;/p&gt;
+&lt;p&gt;项目地址：https://github.com/colbymchenry/codegraph&lt;/p&gt;
+&lt;p&gt;官方文档：https://colbymchenry.github.io/codegraph/&lt;/p&gt;
+&lt;h2&gt;它到底是什么&lt;/h2&gt;
+&lt;p&gt;CodeGraph 是一个本地优先的代码智能工具。它用 tree-sitter 解析代码，把函数、类、方法、类型、路由、组件等抽成节点，把调用、导入、继承、引用等关系抽成边，然后存进本地 SQLite 数据库。&lt;/p&gt;
+&lt;p&gt;对开发者来说，它提供三种入口：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;入口&lt;/th&gt;
+&lt;th&gt;用途&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;CLI&lt;/td&gt;
+&lt;td&gt;初始化、索引、查询、影响分析、生成上下文&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;MCP Server&lt;/td&gt;
+&lt;td&gt;接给 Claude Code、Cursor、Codex CLI、opencode、Hermes Agent&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;TypeScript API&lt;/td&gt;
+&lt;td&gt;在自己的工具链里直接调用 CodeGraph&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;最关键的一点是：它不是把代码丢给大模型总结，也不是把整个项目塞进向量库后做模糊召回。它的核心信息来自 AST 和静态结构，所以结果更接近“代码地图”，而不是“读后感”。&lt;/p&gt;
+&lt;p&gt;官方文档里对它的定位很清楚：本地运行、无 API Key、不依赖外部服务，数据存在项目目录下的 &lt;code&gt;.codegraph/&lt;/code&gt; 里。&lt;/p&gt;
+&lt;h2&gt;为什么它突然火了&lt;/h2&gt;
+&lt;p&gt;这轮关注度并不是空穴来风。&lt;/p&gt;
+&lt;p&gt;在海外，CodeGraph 的传播点主要集中在三件事：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;它服务的是 Claude Code、Cursor、Codex CLI、opencode 这些正在高频使用的编程 Agent。&lt;/li&gt;
+&lt;li&gt;它把“代码探索”从 Agent 的临时行为，前置成一次可复用的索引。&lt;/li&gt;
+&lt;li&gt;它走 MCP 标准，可以作为一个本地工具服务器接入现有 Agent 工作流。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;在中文技术圈，也已经有博客把它翻译和转述为“为 Claude Code 准备的预索引代码知识图谱”，重点强调“更少 Token、更少工具调用、100% 本地运行”。&lt;/p&gt;
+&lt;p&gt;这里要冷静看官方数据。&lt;/p&gt;
+&lt;p&gt;CodeGraph 的 README 里有一组更激进的 benchmark：在 VS Code、Excalidraw、Swift Compiler 等代码库上，对比开启和关闭 CodeGraph 后的工具调用次数与探索耗时。README 展示的样本里，VS Code 从 &lt;code&gt;52&lt;/code&gt; 次工具调用降到 &lt;code&gt;3&lt;/code&gt; 次，Excalidraw 从 &lt;code&gt;47&lt;/code&gt; 次降到 &lt;code&gt;3&lt;/code&gt; 次。&lt;/p&gt;
+&lt;p&gt;但官方文档 Introduction 页又给出了另一组更新口径：在 7 个真实开源代码库上，平均便宜 &lt;code&gt;35%&lt;/code&gt;、Token 减少 &lt;code&gt;57%&lt;/code&gt;、速度提升 &lt;code&gt;46%&lt;/code&gt;、工具调用减少 &lt;code&gt;71%&lt;/code&gt;。&lt;/p&gt;
+&lt;p&gt;这两个数字并不完全一致，可能来自不同版本、不同样本或不同测试方式。我的建议是：不要把它当成严格论文结论，而要看它揭示的工程事实。&lt;/p&gt;
+&lt;p&gt;这个事实是：对于大项目，Agent 的“探索成本”真实存在，而且可以通过预索引显著下降。&lt;/p&gt;
+&lt;h2&gt;工作原理：先解析，再查询&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;flowchart LR
+    A[项目源码] --&amp;gt; B[tree-sitter 解析 AST]
+    B --&amp;gt; C[抽取符号节点]
+    B --&amp;gt; D[抽取调用、导入、继承、引用关系]
+    C --&amp;gt; E[SQLite 图数据库]
+    D --&amp;gt; E
+    E --&amp;gt; F[CLI 查询]
+    E --&amp;gt; G[MCP Server]
+    E --&amp;gt; H[TypeScript API]
+    G --&amp;gt; I[Claude Code / Cursor / Codex CLI / opencode]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;可以把 CodeGraph 理解成四层：&lt;/p&gt;
+&lt;p&gt;第一层是解析。它用 tree-sitter 从源码里解析出 AST，再根据不同语言的规则抽取函数、类、方法、类型、组件、路由等结构。&lt;/p&gt;
+&lt;p&gt;第二层是建图。函数调用、模块导入、类继承、接口实现、路由到 handler 的绑定关系，都会被记录成边。&lt;/p&gt;
+&lt;p&gt;第三层是存储。索引结果放在本地 SQLite 里，并使用 FTS5 做全文搜索。&lt;/p&gt;
+&lt;p&gt;第四层是接入。CLI 给人用，MCP 给 Agent 用，TypeScript API 给工具链用。&lt;/p&gt;
+&lt;p&gt;这也是它和普通 &lt;code&gt;grep&lt;/code&gt; 最大的区别。&lt;code&gt;grep&lt;/code&gt; 能告诉你某个字符串出现在哪里，但它不知道这个字符串是一个函数定义、一次调用，还是注释里的随手一写。CodeGraph 试图回答的是更结构化的问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;createOrder&lt;/code&gt; 被哪些地方调用？&lt;/li&gt;
+&lt;li&gt;改 &lt;code&gt;UserService.login&lt;/code&gt; 会影响哪些模块？&lt;/li&gt;
+&lt;li&gt;这个路由最终落到哪个 controller？&lt;/li&gt;
+&lt;li&gt;让 Agent 修一个登录 bug，需要给它哪些相关代码，而不是整个仓库？&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;支持范围&lt;/h2&gt;
+&lt;p&gt;官方 README 和文档显示，CodeGraph 目前支持 19 种以上语言，包括：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;类型&lt;/th&gt;
+&lt;th&gt;语言&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;前端和脚本&lt;/td&gt;
+&lt;td&gt;TypeScript、JavaScript、Svelte、Vue、Liquid&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;后端常见语言&lt;/td&gt;
+&lt;td&gt;Python、Go、Rust、Java、C#、PHP、Ruby&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;系统和移动端&lt;/td&gt;
+&lt;td&gt;C、C++、Swift、Kotlin、Dart&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;其他&lt;/td&gt;
+&lt;td&gt;Pascal / Delphi&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;它还做了框架路由识别，例如 Django、Flask、FastAPI、Express、Laravel、Rails、Spring、Gin、Axum、ASP.NET、SvelteKit 等。这个能力很实用，因为 Web 项目里“入口在哪里”经常不在函数名里，而在路由声明里。&lt;/p&gt;
+&lt;h2&gt;实操：给一个项目接入 CodeGraph&lt;/h2&gt;
+&lt;p&gt;下面这段是可照着跑的流程。建议先在一个中小型项目试，不要一上来就拿几十万行的大仓库压测。&lt;/p&gt;
+&lt;h3&gt;1. 安装或直接启动交互安装器&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;工具&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph_search&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;按名称搜索符号&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph_context&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;为任务构建相关代码上下文&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph_callers&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;查找某个函数被谁调用&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph_callees&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;查找某个函数调用了谁&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph_impact&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;分析修改某个符号的影响范围&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph_node&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;获取单个符号详情&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph_files&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;获取索引中的文件结构&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph_status&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;检查索引健康状态&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;这里要注意 Cursor 的一个细节。官方集成文档提到，Cursor 启动 MCP 子进程时工作目录可能不符合预期。如果手动接入，最好显式传项目路径；如果用安装器，它会帮你处理这件事。&lt;/p&gt;
+&lt;h2&gt;TypeScript API 示例&lt;/h2&gt;
+&lt;p&gt;如果你想把 CodeGraph 接进自己的内部工具，也可以直接用它的 TypeScript API。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;import CodeGraph from &quot;@colbymchenry/codegraph&quot;;
+
+const projectPath = process.cwd();
+const cg = await CodeGraph.init(projectPath);
+
+await cg.indexAll({
+  onProgress(progress) {
+    console.log(`${progress.phase}: ${progress.current}/${progress.total}`);
+  },
+});
+
+const results = cg.searchNodes(&quot;UserService&quot;);
+
+if (results.length &amp;gt; 0) {
+  const nodeId = results[0].node.id;
+
+  const callers = cg.getCallers(nodeId);
+  const impact = cg.getImpactRadius(nodeId, 2);
+  const context = await cg.buildContext(&quot;修复登录状态刷新问题&quot;, {
+    maxNodes: 20,
+    includeCode: true,
+    format: &quot;markdown&quot;,
+  });
+
+  console.log({ callers, impact, context });
+}
+
+cg.close();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这段代码适合做内部平台能力，比如：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;PR 页面自动展示某个核心函数的影响范围；&lt;/li&gt;
+&lt;li&gt;在 CI 里根据变更文件推荐测试范围；&lt;/li&gt;
+&lt;li&gt;给内部 Agent 提供稳定的代码结构查询接口；&lt;/li&gt;
+&lt;li&gt;做一个“代码库导航”页面，让新人按模块和调用链理解项目。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;怎么在团队里用&lt;/h2&gt;
+&lt;p&gt;我不会一开始就把 CodeGraph 当成“全项目必装”的基础设施。更稳妥的方式是从三个场景试起。&lt;/p&gt;
+&lt;p&gt;第一，老项目改 bug。尤其是调用链长、模块边界模糊、历史包袱重的项目。让 Agent 改之前先查 &lt;code&gt;callers&lt;/code&gt;、&lt;code&gt;callees&lt;/code&gt;、&lt;code&gt;impact&lt;/code&gt;，可以减少它只看局部文件就动手的概率。&lt;/p&gt;
+&lt;p&gt;第二，大仓库问答。比如“订单创建流程从接口到落库怎么走”“这个缓存在哪里失效”“哪个入口会调用这个策略”。这类问题本质上不是生成代码，而是探索结构。CodeGraph 正好对口。&lt;/p&gt;
+&lt;p&gt;第三，CI 测试选择。&lt;code&gt;affected&lt;/code&gt; 不一定能完全替代人工判断，但可以给测试执行做第一层过滤，尤其适合测试很多、全量跑很慢的仓库。&lt;/p&gt;
+&lt;p&gt;对 Agent 的提示词也要改一下。不要只说“帮我修 bug”，而要明确让它先用结构化工具：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;这个项目已经初始化 CodeGraph。
+在修改代码前，请先使用 codegraph_search 查找相关符号，
+再用 codegraph_callers、codegraph_callees 或 codegraph_impact 确认影响范围。
+只有当图谱结果不足时，再回退到 grep/read 读取文件。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这个提示不花哨，但很管用。它把 Agent 的第一反应从“扫文件”改成“查地图”。&lt;/p&gt;
+&lt;h2&gt;需要注意的几个问题&lt;/h2&gt;
+&lt;p&gt;第一，索引不是零成本。首次索引大项目会花时间，也会生成本地数据库。仓库越大，越要认真配置排除规则，尤其是 &lt;code&gt;node_modules&lt;/code&gt;、&lt;code&gt;dist&lt;/code&gt;、&lt;code&gt;build&lt;/code&gt;、生成代码、大型快照文件。&lt;/p&gt;
+&lt;p&gt;第二，静态分析不等于运行时真相。动态导入、反射、依赖注入、运行时注册、框架魔法，都会让静态图谱有盲区。CodeGraph 能让 Agent 少走弯路，但不能保证覆盖所有真实调用。&lt;/p&gt;
+&lt;p&gt;第三，MCP 工具也要做权限管理。CodeGraph 暴露的是本地代码索引，虽然官方强调 100% 本地，但它仍然会让 Agent 更容易读取结构化代码信息。企业内部使用时，建议明确哪些 Agent 能接入、哪些仓库可以建索引、&lt;code&gt;.codegraph/&lt;/code&gt; 是否允许提交。&lt;/p&gt;
+&lt;p&gt;第四，benchmark 要看口径。README 和文档里的数据都指向“工具调用和探索成本下降”，但具体百分比会受模型、提示词、仓库结构、任务类型影响。真正落地时，最好拿自己团队的两三个真实任务做 A/B 对比。&lt;/p&gt;
+&lt;h2&gt;一句话总结&lt;/h2&gt;
+&lt;p&gt;CodeGraph 火起来，不是因为它把 Agent 变聪明了，而是因为它把 Agent 最笨、最耗时的一步提前做掉了。&lt;/p&gt;
+&lt;p&gt;以前 Agent 进项目，先靠 &lt;code&gt;grep&lt;/code&gt; 和 &lt;code&gt;Read&lt;/code&gt; 自己摸路；现在你可以先给它一张由 AST、调用链、导入关系和路由关系组成的地图。地图不等于目的地，但在中大型代码库里，它能明显减少绕路。&lt;/p&gt;
+&lt;p&gt;如果你的团队已经在用 Claude Code、Cursor、Codex CLI 或 OpenCode，而且经常让 Agent 处理老项目、复杂调用链、大仓库问答，CodeGraph 值得单独拿半天试一下。&lt;/p&gt;
+&lt;p&gt;建议先从一个真实项目开始，不要看 Star 数上头，也不要只跑 demo。选一个最近刚修过的 bug，让 Agent 分别在有 CodeGraph 和没有 CodeGraph 的情况下回答：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;这个问题应该改哪些文件？
+入口在哪里？
+改动会影响哪些调用方？
+需要补哪些测试？
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果它能少翻文件、少走弯路、少漏调用点，这个工具就有价值。&lt;/p&gt;
+</content:encoded></item><item><title>英国 Vodafone PayGo 保号卡 - AceSheep</title><link>https://lewis.heiok.top/posts/%E6%8A%80%E5%B7%A7%E6%9D%82%E7%83%A9/%E8%8B%B1%E5%9B%BD-vodafone-paygo-%E4%BF%9D%E5%8F%B7%E5%8D%A1-acesheep/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E6%8A%80%E5%B7%A7%E6%9D%82%E7%83%A9/%E8%8B%B1%E5%9B%BD-vodafone-paygo-%E4%BF%9D%E5%8F%B7%E5%8D%A1-acesheep/</guid><pubDate>Tue, 28 Jul 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
 &lt;p&gt;原文链接：https://blog.acesheep.com/p/sim-card-uk-vodafone/#%E5%8F%96%E6%B6%88%E5%A5%97%E9%A4%90
 抓取时间：2026-07-28 17:03:27&lt;/p&gt;
 &lt;/blockquote&gt;
