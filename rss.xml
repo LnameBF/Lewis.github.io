@@ -138,6 +138,110 @@
 &lt;h2&gt;实操：给一个项目接入 CodeGraph&lt;/h2&gt;
 &lt;p&gt;下面这段是可照着跑的流程。建议先在一个中小型项目试，不要一上来就拿几十万行的大仓库压测。&lt;/p&gt;
 &lt;h3&gt;1. 安装或直接启动交互安装器&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;npx @colbymchenry/codegraph
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这个命令会启动交互式安装器，按提示选择要接入的 Agent，比如 Claude Code、Cursor、Codex CLI、opencode 或 Hermes Agent。&lt;/p&gt;
+&lt;p&gt;如果你想全局安装：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;npm install -g @colbymchenry/codegraph
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;国内网络环境下，npx 第一次拉包可能会慢。团队里建议固定版本，例如：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;npx @colbymchenry/codegraph@0.9.4
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Windows PowerShell 如果遇到 npm.ps1 执行策略问题，可以改用 npm.cmd 或直接在 CMD / Windows Terminal 里执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;npm.cmd install -g @colbymchenry/codegraph
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;2. 初始化并建立索引&lt;/h3&gt;
+&lt;p&gt;进入你的项目目录：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;cd your-project
+codegraph init -i
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;init 会创建 .codegraph/ 目录，-i 表示初始化后立刻做一次完整索引。&lt;/p&gt;
+&lt;p&gt;如果你想分开执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph init
+codegraph index
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;后续代码有变更时，可以只做增量同步：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph sync
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果切了大分支，或者感觉索引状态不对，可以强制重建：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph index --force
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;3. 看索引状态&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;codegraph status
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这个命令会显示索引里的文件数、节点数、边数，以及 SQLite 后端状态。官方文档提醒，最好关注 Backend: 这一行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Backend: native
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果显示的是 wasm，说明 better-sqlite3 的原生模块没有正常安装，会走慢一些的 WASM 回退路径。常见原因是缺少 C/C++ 构建工具、Node 版本切换后绑定失效，或者当前平台没有合适的预编译包。&lt;/p&gt;
+&lt;p&gt;Linux 上可以补构建工具后重建：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# Debian / Ubuntu
+sudo apt install build-essential python3 make
+
+# RHEL / Fedora
+sudo yum groupinstall &quot;Development Tools&quot;
+
+npm rebuild better-sqlite3
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;macOS 上可以先安装命令行工具：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;xcode-select --install
+npm rebuild better-sqlite3
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;4. 查符号、调用链和影响范围&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;codegraph query UserService --limit 10
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;查谁调用了某个函数：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph callers createOrder
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;查某个函数调用了谁：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph callees createOrder
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;分析改动影响面：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph impact createOrder
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这几个命令适合人直接用，也适合在 Agent 改代码前先跑一遍。它们解决的是“我准备动这里，会不会牵出一串东西”的问题。&lt;/p&gt;
+&lt;h3&gt;5. 给 Agent 生成任务上下文&lt;/h3&gt;
+&lt;p&gt;CodeGraph 还有一个很适合 Agent 的命令：context。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph context &quot;修复登录失败后没有刷新用户信息的问题&quot; \
+  --max-nodes 30 \
+  --max-code 8 \
+  --format markdown
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;它会围绕任务描述，构建一段 Markdown 上下文，包含入口点、相关符号、调用关系和部分代码片段。相比让 Agent 自己从零开始翻文件，这种方式更像你提前把相关资料夹递给它。&lt;/p&gt;
+&lt;p&gt;如果只想拿结构，不想带代码：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph context &quot;梳理订单创建流程&quot; --no-code
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;6. 只跑受影响的测试&lt;/h3&gt;
+&lt;p&gt;affected 命令适合放进 CI 或 Git Hook。它会沿着依赖关系找出受改动影响的测试文件。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;codegraph affected src/auth.ts src/user.ts
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;配合 git diff：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;git diff --name-only | codegraph affected --stdin --quiet
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;一个简单的 CI 片段：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;#!/usr/bin/env bash
+
+AFFECTED=$(git diff --name-only HEAD | codegraph affected --stdin --quiet)
+
+if [ -n &quot;$AFFECTED&quot; ]; then
+  npx vitest run $AFFECTED
+else
+  echo &quot;No affected tests found&quot;
+fi
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这不是万能测试选择器，但对前端和 Node 项目里“改一个工具函数，到底该跑哪些测试”这种场景，思路是对的。&lt;/p&gt;
+&lt;h2&gt;接入 Claude Code 的 MCP 配置示例&lt;/h2&gt;
+&lt;p&gt;如果不走交互安装器，也可以手动配置 MCP Server。Claude Code 的配置思路大致如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{
+  &quot;mcpServers&quot;: {
+    &quot;codegraph&quot;: {
+      &quot;type&quot;: &quot;stdio&quot;,
+      &quot;command&quot;: &quot;codegraph&quot;,
+      &quot;args&quot;: [&quot;serve&quot;, &quot;--mcp&quot;]
+    }
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;CodeGraph 作为 MCP Server 后，会暴露一组只读工具，典型包括：&lt;/p&gt;
 &lt;table&gt;
 &lt;thead&gt;
 &lt;tr&gt;
