@@ -119,6 +119,186 @@ flowchart LR
 
 ### 1. 安装或直接启动交互安装器
 
+```bash
+npx @colbymchenry/codegraph
+```
+
+这个命令会启动交互式安装器，按提示选择要接入的 Agent，比如 Claude Code、Cursor、Codex CLI、opencode 或 Hermes Agent。
+
+如果你想全局安装：
+
+```bash
+npm install -g @colbymchenry/codegraph
+```
+
+国内网络环境下，npx 第一次拉包可能会慢。团队里建议固定版本，例如：
+
+```bash
+npx @colbymchenry/codegraph@0.9.4
+```
+
+Windows PowerShell 如果遇到 npm.ps1 执行策略问题，可以改用 npm.cmd 或直接在 CMD / Windows Terminal 里执行：
+
+```bash
+npm.cmd install -g @colbymchenry/codegraph
+```
+
+### 2. 初始化并建立索引
+
+进入你的项目目录：
+
+```bash
+cd your-project
+codegraph init -i
+```
+
+init 会创建 .codegraph/ 目录，-i 表示初始化后立刻做一次完整索引。
+
+如果你想分开执行：
+
+```bash
+codegraph init
+codegraph index
+```
+
+后续代码有变更时，可以只做增量同步：
+
+```bash
+codegraph sync
+```
+
+如果切了大分支，或者感觉索引状态不对，可以强制重建：
+
+```bash
+codegraph index --force
+```
+
+### 3. 看索引状态
+
+```bash
+codegraph status
+```
+
+这个命令会显示索引里的文件数、节点数、边数，以及 SQLite 后端状态。官方文档提醒，最好关注 Backend: 这一行：
+
+```
+Backend: native
+```
+
+如果显示的是 wasm，说明 better-sqlite3 的原生模块没有正常安装，会走慢一些的 WASM 回退路径。常见原因是缺少 C/C++ 构建工具、Node 版本切换后绑定失效，或者当前平台没有合适的预编译包。
+
+Linux 上可以补构建工具后重建：
+
+```bash
+# Debian / Ubuntu
+sudo apt install build-essential python3 make
+
+# RHEL / Fedora
+sudo yum groupinstall "Development Tools"
+
+npm rebuild better-sqlite3
+```
+
+macOS 上可以先安装命令行工具：
+
+```bash
+xcode-select --install
+npm rebuild better-sqlite3
+```
+
+### 4. 查符号、调用链和影响范围
+
+```bash
+codegraph query UserService --limit 10
+```
+
+查谁调用了某个函数：
+
+```bash
+codegraph callers createOrder
+```
+
+查某个函数调用了谁：
+
+```bash
+codegraph callees createOrder
+```
+
+分析改动影响面：
+
+```bash
+codegraph impact createOrder
+```
+
+这几个命令适合人直接用，也适合在 Agent 改代码前先跑一遍。它们解决的是“我准备动这里，会不会牵出一串东西”的问题。
+
+### 5. 给 Agent 生成任务上下文
+
+CodeGraph 还有一个很适合 Agent 的命令：context。
+
+```bash
+codegraph context "修复登录失败后没有刷新用户信息的问题" \
+  --max-nodes 30 \
+  --max-code 8 \
+  --format markdown
+```
+
+它会围绕任务描述，构建一段 Markdown 上下文，包含入口点、相关符号、调用关系和部分代码片段。相比让 Agent 自己从零开始翻文件，这种方式更像你提前把相关资料夹递给它。
+
+如果只想拿结构，不想带代码：
+
+```bash
+codegraph context "梳理订单创建流程" --no-code
+```
+
+### 6. 只跑受影响的测试
+
+affected 命令适合放进 CI 或 Git Hook。它会沿着依赖关系找出受改动影响的测试文件。
+
+```bash
+codegraph affected src/auth.ts src/user.ts
+```
+
+配合 git diff：
+
+```bash
+git diff --name-only | codegraph affected --stdin --quiet
+```
+
+一个简单的 CI 片段：
+
+```bash
+#!/usr/bin/env bash
+
+AFFECTED=$(git diff --name-only HEAD | codegraph affected --stdin --quiet)
+
+if [ -n "$AFFECTED" ]; then
+  npx vitest run $AFFECTED
+else
+  echo "No affected tests found"
+fi
+```
+
+这不是万能测试选择器，但对前端和 Node 项目里“改一个工具函数，到底该跑哪些测试”这种场景，思路是对的。
+
+## 接入 Claude Code 的 MCP 配置示例
+
+如果不走交互安装器，也可以手动配置 MCP Server。Claude Code 的配置思路大致如下：
+
+```json
+{
+  "mcpServers": {
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}
+```
+
+CodeGraph 作为 MCP Server 后，会暴露一组只读工具，典型包括：
+
 | 工具 | 作用 |
 | --- | --- |
 | `codegraph_search` | 按名称搜索符号 |

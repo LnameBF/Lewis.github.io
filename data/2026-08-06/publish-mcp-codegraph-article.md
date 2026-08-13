@@ -20,8 +20,9 @@
    - 去掉文末博客园「免责声明」（非正文内容）
    - frontmatter 补上 description（取原文副标题）
    - 分类 AI / 标签 MCP, Agent 保留脚本判定
+4. 用户反馈内容缺失：经核原文，「实操：给一个项目接入 CodeGraph」一节本有 6 个完整子步骤（安装/索引/状态/查询/上下文/受影响测试）+ 一个独立章节「接入 Claude Code 的 MCP 配置示例」（含 MCP JSON 配置 + 工具表）。脚本与 webReader 都漏掉了这一大段，残留的工具表还被误放在「### 1. 安装」标题下。改用本地 `node fetch` 直接抓 cnblogs 原始 HTML 逐字提取，补回全部命令与配置；MCP 工具表归位到「接入 Claude Code 的 MCP 配置示例」章节下
 
 ## 备注
 
 - 文章为博客园抓取转载，原文链接与抓取时间保留在正文头部引用块
-- 已知限制：脚本的 `extractPrimaryContentHtml` 对博客园页面结构适配不佳，遇到 cnblogs 源时建议直接用 webReader 抓取正文再人工重建代码块
+- 已知限制：脚本的 `extractPrimaryContentHtml` 对博客园页面结构适配不佳；webReader 虽正文干净但会漏掉整段并误转代码块为表格。cnblogs 源最可靠的抓取方式是本地 `node fetch` 拉 raw HTML 后手工定位正文，三种工具各有盲区，互为校验
