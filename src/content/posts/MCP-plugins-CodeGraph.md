@@ -11,10 +11,11 @@ lang: 'zh-CN'
 
 > 原文链接：https://www.cnblogs.com/tommymarc/p/20562646
 > 抓取时间：2026-08-06 09:56:38
+> 注：本文基于 CodeGraph 官方 README（2026-08 版）校订，命令、工具、benchmark 等事实陈述已对齐最新版本。
 
 ### CodeGraph 爆火：编程 Agent 需要的不是更多上下文，而是一张提前画好的代码地图
 
-最近 GitHub 上有个 TypeScript 项目涨得很猛：`colbymchenry/codegraph`。
+最近 GitHub 上有个项目涨得很猛：`colbymchenry/codegraph`。
 
 你给到的榜单数据是：本周新增 Star `+15,909`，总 Star `19,392`。我又查了一圈公开信息，发现这个数字还在快速变化：第三方仓库统计站 GitGenius 在 2026 年 5 月下旬抓到的总 Star 已经超过 `20k`。这种短时间内的跳涨，通常说明它不只是“又一个 MCP 工具”，而是踩中了编程 Agent 当前非常具体的痛点。
 
@@ -32,14 +33,14 @@ CodeGraph 的思路很直接：不要让 Agent 每次都现场翻箱倒柜。先
 
 ## 它到底是什么
 
-CodeGraph 是一个本地优先的代码智能工具。它用 tree-sitter 解析代码，把函数、类、方法、类型、路由、组件等抽成节点，把调用、导入、继承、引用等关系抽成边，然后存进本地 SQLite 数据库。
+CodeGraph 是一个本地优先的代码智能工具。它用一个 Rust 写的内核配合 tree-sitter 解析代码，把函数、类、方法、类型、路由、组件等抽成节点，把调用、导入、继承、引用等关系抽成边，然后存进本地 SQLite 数据库。
 
 对开发者来说，它提供三种入口：
 
 | 入口 | 用途 |
 | --- | --- |
 | CLI | 初始化、索引、查询、影响分析、生成上下文 |
-| MCP Server | 接给 Claude Code、Cursor、Codex CLI、opencode、Hermes Agent |
+| MCP Server | 接给 Claude Code、Cursor、Codex CLI、opencode、Hermes Agent、Gemini CLI、Antigravity、Kiro、GitHub Copilot |
 | TypeScript API | 在自己的工具链里直接调用 CodeGraph |
 
 最关键的一点是：它不是把代码丢给大模型总结，也不是把整个项目塞进向量库后做模糊召回。它的核心信息来自 AST 和静态结构，所以结果更接近“代码地图”，而不是“读后感”。
@@ -60,13 +61,11 @@ CodeGraph 是一个本地优先的代码智能工具。它用 tree-sitter 解析
 
 这里要冷静看官方数据。
 
-CodeGraph 的 README 里有一组更激进的 benchmark：在 VS Code、Excalidraw、Swift Compiler 等代码库上，对比开启和关闭 CodeGraph 后的工具调用次数与探索耗时。README 展示的样本里，VS Code 从 `52` 次工具调用降到 `3` 次，Excalidraw 从 `47` 次降到 `3` 次。
+CodeGraph 的 README 给出了一组在 7 个真实开源代码库上的 benchmark（2026-08 重测，用 Claude Opus 4.8，每个仓库每臂跑 4 次取中位数）：VS Code（约 11k 文件）的工具调用从 `28` 次降到 `2` 次，Excalidraw 从 `43` 次降到 `2` 次，Alamofire 从 `33` 次降到 `4` 次；更关键的是，开启 CodeGraph 后这 7 个仓库的文件读取次数全部归零。汇总下来：工具调用减少 `88%`、速度快 `53%`、Token 减少 `62%`、成本低 `44%`。
 
-但官方文档 Introduction 页又给出了另一组更新口径：在 7 个真实开源代码库上，平均便宜 `35%`、Token 减少 `57%`、速度提升 `46%`、工具调用减少 `71%`。
+这一轮测试还补上了之前缺失的一环：在对照组里也把 `codegraph` CLI 本身屏蔽掉，防止它绕过 MCP 被偷偷调用——README 直说早先没加这层屏蔽时公布的旧数据是不准的。
 
-这两个数字并不完全一致，可能来自不同版本、不同样本或不同测试方式。我的建议是：不要把它当成严格论文结论，而要看它揭示的工程事实。
-
-这个事实是：对于大项目，Agent 的“探索成本”真实存在，而且可以通过预索引显著下降。
+仍要提醒一句：benchmark 永远要看口径。具体百分比会受模型、提示词、仓库结构、任务类型影响。不要把它当成严格论文结论，而要看它揭示的工程事实：对于大项目，Agent 的“探索成本”真实存在，而且可以通过预索引显著下降。
 
 ## 工作原理：先解析，再查询
 
@@ -85,11 +84,11 @@ flowchart LR
 
 可以把 CodeGraph 理解成四层：
 
-第一层是解析。它用 tree-sitter 从源码里解析出 AST，再根据不同语言的规则抽取函数、类、方法、类型、组件、路由等结构。
+第一层是解析。它用一个 Rust 写的内核，配合 tree-sitter 从源码里解析出 AST，再根据不同语言的规则抽取函数、类、方法、类型、组件、路由等结构。
 
 第二层是建图。函数调用、模块导入、类继承、接口实现、路由到 handler 的绑定关系，都会被记录成边。
 
-第三层是存储。索引结果放在本地 SQLite 里，并使用 FTS5 做全文搜索。
+第三层是存储。索引结果放在本地 SQLite 里（用 Node 内置的 `node:sqlite`，WAL 模式），并使用 FTS5 做全文搜索。
 
 第四层是接入。CLI 给人用，MCP 给 Agent 用，TypeScript API 给工具链用。
 
@@ -102,76 +101,67 @@ flowchart LR
 
 ## 支持范围
 
-官方 README 和文档显示，CodeGraph 目前支持 19 种以上语言，包括：
+官方 README 显示，CodeGraph 目前支持 30 多种语言（其中 20 种走原生 Rust 解析，其余走可移植引擎，产出的图完全一致），包括：
 
 | 类型 | 语言 |
 | --- | --- |
-| 前端和脚本 | TypeScript、JavaScript、Svelte、Vue、Liquid |
-| 后端常见语言 | Python、Go、Rust、Java、C#、PHP、Ruby |
-| 系统和移动端 | C、C++、Swift、Kotlin、Dart |
-| 其他 | Pascal / Delphi |
+| 前端和脚本 | TypeScript、JavaScript、ArkTS、Svelte、Vue、Astro、Liquid |
+| 后端常见 | Python、Go、Rust、Java、C#、VB.NET、PHP、Ruby、Scala、Erlang |
+| 系统和移动端 | C、C++、Objective-C、Metal、CUDA、Swift、Kotlin、Dart |
+| 脚本和其他 | Lua、Luau、R、CFML、COBOL、Solidity、Terraform/OpenTofu、Nix、Pascal/Delphi |
 
-它还做了框架路由识别，例如 Django、Flask、FastAPI、Express、Laravel、Rails、Spring、Gin、Axum、ASP.NET、SvelteKit 等。这个能力很实用，因为 Web 项目里“入口在哪里”经常不在函数名里，而在路由声明里。
+它还做了框架路由识别，覆盖 17 个框架，包括 Django、Flask、FastAPI、Express、NestJS、Laravel、Rails、Spring、Gin、Axum、ASP.NET、Play、Vapor、React Router、SvelteKit、Vue/Nuxt、Astro 等。这个能力很实用，因为 Web 项目里“入口在哪里”经常不在函数名里，而在路由声明里。
 
 ## 实操：给一个项目接入 CodeGraph
 
 下面这段是可照着跑的流程。建议先在一个中小型项目试，不要一上来就拿几十万行的大仓库压测。
 
-### 1. 安装或直接启动交互安装器
+### 1. 安装
+
+CodeGraph 自带运行时，装的时候不需要本机有 Node.js。macOS / Linux 用一条 curl，Windows 用一条 PowerShell：
 
 ```bash
-npx @colbymchenry/codegraph
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.ps1 | iex
 ```
 
-这个命令会启动交互式安装器，按提示选择要接入的 Agent，比如 Claude Code、Cursor、Codex CLI、opencode 或 Hermes Agent。
-
-如果你想全局安装：
+如果你本机已经有 Node，也可以走 npm：
 
 ```bash
 npm install -g @colbymchenry/codegraph
 ```
 
-国内网络环境下，npx 第一次拉包可能会慢。团队里建议固定版本，例如：
+装完之后，跑一次安装器把 CodeGraph 接到你的 Agent 上：
 
 ```bash
-npx @colbymchenry/codegraph@0.9.4
+codegraph install
 ```
 
-Windows PowerShell 如果遇到 npm.ps1 执行策略问题，可以改用 npm.cmd 或直接在 CMD / Windows Terminal 里执行：
+安装器会自动探测已装的 Agent（Claude Code、Cursor、Codex CLI、opencode、Hermes Agent、Gemini CLI、Antigravity、Kiro、GitHub Copilot），把 CodeGraph 的 MCP 服务写进它们的配置。注意这一步只接 Agent，不索引代码——建图是下一步 `codegraph init` 的事。
 
-```bash
-npm.cmd install -g @colbymchenry/codegraph
-```
+> 装完记得**开一个新终端**再继续，好让 `codegraph` 命令在 PATH 里生效。以后想升级就跑 `codegraph upgrade`，它会自动识别你是用脚本装的还是 npm 装的；想彻底卸载就跑 `codegraph uninstall`。
 
-### 2. 初始化并建立索引
+### 2. 初始化并自动同步
 
-进入你的项目目录：
+进入你的项目目录，一条命令建好图谱：
 
 ```bash
 cd your-project
-codegraph init -i
-```
-
-init 会创建 .codegraph/ 目录，-i 表示初始化后立刻做一次完整索引。
-
-如果你想分开执行：
-
-```bash
 codegraph init
-codegraph index
 ```
 
-后续代码有变更时，可以只做增量同步：
+`init` 会创建 `.codegraph/` 目录，并在同一步里建好完整的图。和早期版本不同，现在**不需要手动 sync**：CodeGraph 默认开着文件 watcher（用系统原生的 FSEvents / inotify / ReadDirectoryChangesW），你保存文件后大约 2 秒内就会自动增量同步，索引永远不会过期。
 
-```bash
-codegraph sync
-```
-
-如果切了大分支，或者感觉索引状态不对，可以强制重建：
+如果你切了大分支、或者怀疑索引状态不对，可以强制重建：
 
 ```bash
 codegraph index --force
 ```
+
+只有少数情况才需要手动 `codegraph sync`：watcher 被禁用了（沙箱环境，或设了 `CODEGRAPH_NO_DAEMON=1`），或者你在 Agent 会话之外写脚本读索引、想开头先同步一次。
 
 ### 3. 看索引状态
 
@@ -179,32 +169,9 @@ codegraph index --force
 codegraph status
 ```
 
-这个命令会显示索引里的文件数、节点数、边数，以及 SQLite 后端状态。官方文档提醒，最好关注 Backend: 这一行：
+这个命令会显示索引里的文件数、节点数、边数，以及数据库状态。新版 CodeGraph 自带运行时，用 Node 内置的 `node:sqlite`（WAL 模式）做存储，所以不再需要你手动装 better-sqlite3 这类原生模块，也没有 “native / wasm 后端” 的选择问题——一条命令装好就能用。
 
-```
-Backend: native
-```
-
-如果显示的是 wasm，说明 better-sqlite3 的原生模块没有正常安装，会走慢一些的 WASM 回退路径。常见原因是缺少 C/C++ 构建工具、Node 版本切换后绑定失效，或者当前平台没有合适的预编译包。
-
-Linux 上可以补构建工具后重建：
-
-```bash
-# Debian / Ubuntu
-sudo apt install build-essential python3 make
-
-# RHEL / Fedora
-sudo yum groupinstall "Development Tools"
-
-npm rebuild better-sqlite3
-```
-
-macOS 上可以先安装命令行工具：
-
-```bash
-xcode-select --install
-npm rebuild better-sqlite3
-```
+> 老版本（pre-0.9）才需要操心 better-sqlite3 的原生编译。如果你在很旧的安装上遇到 `database is locked`，重新装一次新版即可：`curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh`（macOS/Linux）或 `irm https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.ps1 | iex`（Windows）。
 
 ### 4. 查符号、调用链和影响范围
 
@@ -232,24 +199,17 @@ codegraph impact createOrder
 
 这几个命令适合人直接用，也适合在 Agent 改代码前先跑一遍。它们解决的是“我准备动这里，会不会牵出一串东西”的问题。
 
-### 5. 给 Agent 生成任务上下文
+### 5. 给 Agent 一次性生成上下文
 
-CodeGraph 还有一个很适合 Agent 的命令：context。
-
-```bash
-codegraph context "修复登录失败后没有刷新用户信息的问题" \
-  --max-nodes 30 \
-  --max-code 8 \
-  --format markdown
-```
-
-它会围绕任务描述，构建一段 Markdown 上下文，包含入口点、相关符号、调用关系和部分代码片段。相比让 Agent 自己从零开始翻文件，这种方式更像你提前把相关资料夹递给它。
-
-如果只想拿结构，不想带代码：
+CodeGraph 还有一个很适合 Agent 的命令：`explore`。一条命令把相关符号的源码、调用路径和影响范围都拿出来：
 
 ```bash
-codegraph context "梳理订单创建流程" --no-code
+codegraph explore "修复登录失败后没有刷新用户信息的问题"
 ```
+
+它会围绕任务描述，返回一段按文件分组的相关源码，加上这些符号之间的调用关系（包括 grep 跟不上的动态分派）和改动的影响范围。相比让 Agent 自己从零开始翻文件，这种方式更像你提前把相关资料夹递给它。
+
+`explore` 也是 CodeGraph 的 MCP 工具 `codegraph_explore` 在命令行的对应物——下面会讲到，MCP 端默认就只暴露这一个工具。
 
 ### 6. 只跑受影响的测试
 
@@ -297,24 +257,19 @@ fi
 }
 ```
 
-CodeGraph 作为 MCP Server 后，会暴露一组只读工具，典型包括：
+CodeGraph 作为 MCP Server 后，默认只暴露**一个工具**：
 
 | 工具 | 作用 |
 | --- | --- |
-| `codegraph_search` | 按名称搜索符号 |
-| `codegraph_context` | 为任务构建相关代码上下文 |
-| `codegraph_callers` | 查找某个函数被谁调用 |
-| `codegraph_callees` | 查找某个函数调用了谁 |
-| `codegraph_impact` | 分析修改某个符号的影响范围 |
-| `codegraph_node` | 获取单个符号详情 |
-| `codegraph_files` | 获取索引中的文件结构 |
-| `codegraph_status` | 检查索引健康状态 |
+| `codegraph_explore` | 一次调用回答几乎所有问题——“X 是怎么工作的”、某条调用链怎么走、或摸清某块代码的结构。返回相关符号按文件分组的源码、它们之间的调用路径（含动态分派），以及改动的影响范围 |
+
+官方实测下来，给 Agent 一个强工具比给一排细分工具效果更好——少选错、每次会话还能省 context。其余命令（`codegraph_node`、`codegraph_search`、`codegraph_callers` 等）在 MCP 端默认隐藏，因为 `codegraph_explore` 已经把它们的输出都内联带回来了；需要的话可以用 `CODEGRAPH_MCP_TOOLS` 环境变量重新启用，或直接用对应的 CLI（`codegraph node` / `query` / `callers` 等）。
 
 这里要注意 Cursor 的一个细节。官方集成文档提到，Cursor 启动 MCP 子进程时工作目录可能不符合预期。如果手动接入，最好显式传项目路径；如果用安装器，它会帮你处理这件事。
 
 ## TypeScript API 示例
 
-如果你想把 CodeGraph 接进自己的内部工具，也可以直接用它的 TypeScript API。
+如果你想把 CodeGraph 接进自己的内部工具，也可以直接用它的 TypeScript API。库 API 跑在你自己的运行时上，需要 **Node 22.5+**（用内置的 `node:sqlite`）；CLI 和 MCP 服务不受影响，它们跑在自带的运行时上。
 
 ```ts
 import CodeGraph from "@colbymchenry/codegraph";
@@ -344,6 +299,7 @@ if (results.length > 0) {
   console.log({ callers, impact, context });
 }
 
+cg.watch(); // 文件变更时自动同步
 cg.close();
 ```
 
@@ -368,8 +324,8 @@ cg.close();
 
 ```text
 这个项目已经初始化 CodeGraph。
-在修改代码前，请先使用 codegraph_search 查找相关符号，
-再用 codegraph_callers、codegraph_callees 或 codegraph_impact 确认影响范围。
+在修改代码前，请先使用 codegraph_explore 查找相关符号和调用路径，
+确认影响范围后再动手。
 只有当图谱结果不足时，再回退到 grep/read 读取文件。
 ```
 
@@ -377,7 +333,7 @@ cg.close();
 
 ## 需要注意的几个问题
 
-第一，索引不是零成本。首次索引大项目会花时间，也会生成本地数据库。仓库越大，越要认真配置排除规则，尤其是 `node_modules`、`dist`、`build`、生成代码、大型快照文件。
+第一，索引不是零成本。首次索引大项目会花时间，也会生成本地数据库。好消息是 CodeGraph 默认就会排除 `node_modules`、`dist`、`build`、`vendor` 这类依赖和构建目录，也尊重 `.gitignore`；想额外排除什么，加进 `.gitignore` 或在 `codegraph.json` 里用 `exclude` 配置即可。
 
 第二，静态分析不等于运行时真相。动态导入、反射、依赖注入、运行时注册、框架魔法，都会让静态图谱有盲区。CodeGraph 能让 Agent 少走弯路，但不能保证覆盖所有真实调用。
 
