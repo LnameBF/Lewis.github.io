@@ -1,4 +1,132 @@
-<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>利用 wloc 在国行 iOS 26+ 不使用尾插开启 Wi-Fi Calling 的方法</title><link>https://lewis.heiok.top/posts/ios26-wloc-wifi-calling/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/ios26-wloc-wifi-calling/</guid><description>国行 iPhone 在只有一台新系统机器、没有尾插或老 iPhone 的情况下，借助 wloc 定位模块 + 英国代理 IP 拉起 Wi-Fi 通话的实操记录。</description><pubDate>Thu, 06 Aug 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>Coding Agent 提示词模板：四要素写法与代码开发完整示例</title><link>https://lewis.heiok.top/posts/ai/coding-agent-%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%A8%A1%E6%9D%BF-%E5%9B%9B%E8%A6%81%E7%B4%A0%E5%86%99%E6%B3%95%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E5%AE%8C%E6%95%B4%E7%A4%BA%E4%BE%8B/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/ai/coding-agent-%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%A8%A1%E6%9D%BF-%E5%9B%9B%E8%A6%81%E7%B4%A0%E5%86%99%E6%B3%95%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E5%AE%8C%E6%95%B4%E7%A4%BA%E4%BE%8B/</guid><description>上下文比提示技巧更重要。一套按「四要素 + 开发闭环」组织的 Coding Agent 任务提示词模板，附后端接口开发的完整填写示例。</description><pubDate>Fri, 21 Aug 2026 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;随着大模型能力的提升，AI 编码工具正在从&quot;代码补全助手&quot;演变为能够参与完整开发流程的 Coding Agent。但很多人用了很久，产出质量依然不稳定——问题往往不在模型，而在任务描述的方式。&lt;/p&gt;
+&lt;p&gt;智谱的 &lt;a href=&quot;https://docs.bigmodel.cn/cn/coding-plan/learning-resources/best-practice&quot;&gt;Coding Plan 最佳实践&lt;/a&gt; 提出了一个核心观点：&lt;strong&gt;上下文比提示技巧更重要&lt;/strong&gt;。一个有效的任务描述应包含四个要素，复杂任务要先规划再执行，并让 Agent 走完&quot;实现 → 测试 → 检查 → 审查&quot;的完整开发闭环。&lt;/p&gt;
+&lt;p&gt;本文基于这套原则，整理出一份可直接复用的代码开发提示词模板，并给出一个后端接口开发的完整填写示例。&lt;/p&gt;
+&lt;h2&gt;任务描述的四要素&lt;/h2&gt;
+&lt;p&gt;最佳实践给出的四要素是提示词模板的骨架：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;任务目标&lt;/strong&gt;——要实现什么。明确到&quot;实现/修改/删除&quot;哪个功能点，避免让 Agent 猜。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;相关上下文&lt;/strong&gt;——涉及哪些文件、当前行为与期望行为的差异、报错堆栈或 CI 日志，原样粘贴。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;约束条件&lt;/strong&gt;——代码规范、架构规则、安全要求、兼容性影响面。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;完成标准&lt;/strong&gt;——可验证的验收条件：测试通过、lint 无新增告警、行为符合预期。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;提示词模板：代码开发通用版&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;# 任务：【动词开头的一句话概括，如&quot;实现 XX 接口 / 修复 XX bug&quot;】
+
+## 1. 任务目标
+【做什么、为什么做。明确到&quot;实现/修改/删除&quot;哪个功能点，避免让 Agent 猜。】
+
+## 2. 相关上下文
+- 涉及文件/模块：
+  - `path/to/file.ts`（现有实现，需在此扩展）
+  - `path/to/other.ts`（参考写法）
+- 背景/现状：
+  【当前行为是什么、期望行为是什么；如果是 bug，写清复现步骤】
+- 错误信息/日志：
+  【报错堆栈、CI 失败日志、接口返回等，原样粘贴】
+
+## 3. 约束条件
+- 技术栈/框架：【如 Node 20 + Fastify + Prisma + PostgreSQL】
+- 代码规范：【如遵循仓库现有分层结构（route → service → dao）、命名风格与现有一致】
+- 架构/安全要求：【如不允许新增第三方依赖、输入校验必须在 service 层完成、SQL 禁止拼接】
+- 兼容性/影响面：【如不能破坏现有 API 响应结构、需同步更新 OpenAPI 注释】
+
+## 4. 完成标准（Definition of Done）
+- 【可验证的条件，逐条列出】
+- [ ] 单元测试覆盖新逻辑，`npm test` 全部通过
+- [ ] `npm run lint` 和 `npm run typecheck` 无新增告警
+- [ ] 行为验证：【如调用 POST /api/xxx 返回 xxx；原 bug 场景不再复现】
+
+## 5. 执行方式
+- 本任务较复杂：请先阅读上述文件，输出一份简要执行计划（修改哪些文件、
+  改动顺序、风险点），待我确认后再开始写代码。
+- 实现完成后按开发闭环自查：补充/更新测试 → 运行测试与 lint →
+  自查 git diff，确认没有越界修改，最后汇报每项完成标准的实际结果。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;模板与最佳实践的对应关系&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;模板段落&lt;/th&gt;
+&lt;th&gt;对应的最佳实践原则&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;任务目标 + 相关上下文&lt;/td&gt;
+&lt;td&gt;&quot;四要素&quot;——上下文比提示技巧更重要&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;执行方式（先出计划）&lt;/td&gt;
+&lt;td&gt;复杂任务先规划再执行（即 Plan 模式）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;约束条件&lt;/td&gt;
+&lt;td&gt;临时指令写 prompt，长期规则沉淀到项目级配置文件&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;完成标准 + 执行方式&lt;/td&gt;
+&lt;td&gt;完整开发闭环：实现、测试、lint、审查 diff 一个不少&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;完整示例：后端接口开发&lt;/h2&gt;
+&lt;p&gt;下面是一个按模板填写完成的真实场景：为订单服务新增&quot;按用户查询订单列表&quot;接口。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 任务：为订单模块新增&quot;按用户查询订单列表&quot;接口（支持分页和状态筛选）
+
+## 1. 任务目标
+在现有订单服务中新增 GET /api/orders 接口：按当前登录用户查询其订单列表，
+支持 page/pageSize 分页和 status 状态筛选。背景：小程序端订单列表页已开发
+完成，等待此接口联调。
+
+## 2. 相关上下文
+- 涉及文件/模块：
+  - `src/routes/order.ts`（现有订单路由，新接口加在这里，已有 POST /api/orders）
+  - `src/services/order.service.ts`（业务逻辑层，已有 createOrder 可参考）
+  - `src/dao/order.dao.ts`（数据访问层，统一在此层操作 Prisma）
+  - `prisma/schema.prisma`（Order 模型定义，status 枚举：PENDING/PAID/CANCELLED）
+  - `src/utils/pagination.ts`（已有分页参数解析工具，直接复用）
+- 背景/现状：
+  - 目前只有创建订单接口，无查询能力。
+  - 鉴权已由全局中间件处理，service 层可通过 `req.user.id` 拿到用户 ID。
+- 错误信息/日志：无（新功能开发）。
+
+## 3. 约束条件
+- 技术栈：Node 20 + Fastify + Prisma + PostgreSQL，TypeScript 严格模式。
+- 代码规范：遵循仓库现有 route → service → dao 分层；route 层只做参数
+  校验和调用 service；错误统一抛 AppError，由全局 handler 转换响应。
+- 架构/安全要求：
+  - 必须按 userId 过滤，禁止查询他人订单（水平越权）。
+  - page/pageSize 需校验上限（pageSize ≤ 100），防止大查询拖垮数据库。
+  - 不允许新增第三方依赖。
+- 兼容性：响应结构遵循仓库统一分页格式 `{ code, data: { list, total, page, pageSize } }`。
+
+## 4. 完成标准（Definition of Done）
+- [ ] service 层新增单测：正常分页、status 筛选、空列表、pageSize 超限拒绝，
+      `npm test` 全部通过
+- [ ] `npm run lint` 和 `npm run typecheck` 无新增告警
+- [ ] 行为验证：curl 调用 GET /api/orders?page=1&amp;amp;pageSize=10&amp;amp;status=PAID
+      返回该用户的已支付订单，total 数与数据库一致
+- [ ] 用户 A 的请求中不出现用户 B 的订单（越权测试）
+
+## 5. 执行方式
+- 本任务涉及三个分层的改动，请先阅读上述文件，输出执行计划
+  （每个文件改什么、测试怎么组织），我确认后再实现。
+- 实现后走完整闭环：补测试 → 跑测试和 lint → 自查 git diff →
+  按完成标准逐项汇报实际验证结果。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;注意示例里上下文的写法：每个文件都注明&quot;它是什么、新代码和它的关系&quot;，而不是只丢一串路径。这种带注解的文件清单能显著减少 Agent 误读代码结构的情况。&lt;/p&gt;
+&lt;h2&gt;两条进阶建议&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;[!TIP]
+&lt;strong&gt;长期规则别写进 prompt。&lt;/strong&gt; 示例里&quot;分层结构、统一分页格式、错误处理方式&quot;这类每个任务都重复的约束，实际使用时应沉淀到项目级配置文件（如 &lt;code&gt;AGENTS.md&lt;/code&gt;），prompt 里只保留本任务特有的内容。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;[!TIP]
+&lt;strong&gt;重复使用的模板应升级为 Skill。&lt;/strong&gt; 如果这套模板在团队里被反复使用（比如&quot;新增一个 CRUD 接口&quot;是高频任务），按最佳实践的法则——被反复使用的提示词就应该沉淀为 Skill——把它做成技能，Agent 遇到类似任务时自动套用同一流程，效果会比每次手写更稳定。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2&gt;小结&lt;/h2&gt;
+&lt;p&gt;提示词工程的尽头不是话术，而是工程化的上下文管理：单次任务用四要素结构化描述，长期规则进配置文件，重复流程固化为 Skill，稳定流程交给自动化。把 Agent 当协作者而不是一次性助手，它的产出才会真正稳定下来。&lt;/p&gt;
+</content:encoded></item><item><title>利用 wloc 在国行 iOS 26+ 不使用尾插开启 Wi-Fi Calling 的方法</title><link>https://lewis.heiok.top/posts/ios26-wloc-wifi-calling/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/ios26-wloc-wifi-calling/</guid><description>国行 iPhone 在只有一台新系统机器、没有尾插或老 iPhone 的情况下，借助 wloc 定位模块 + 英国代理 IP 拉起 Wi-Fi 通话的实操记录。</description><pubDate>Thu, 06 Aug 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
 &lt;p&gt;原文链接：https://www.v2ex.com/t/1229822
 抓取时间：2026-08-06 11:46:24&lt;/p&gt;
 &lt;/blockquote&gt;
