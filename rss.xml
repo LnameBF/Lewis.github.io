@@ -1,4 +1,371 @@
-<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>Coding Agent 提示词模板：四要素写法与代码开发完整示例</title><link>https://lewis.heiok.top/posts/ai/coding-agent-%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%A8%A1%E6%9D%BF-%E5%9B%9B%E8%A6%81%E7%B4%A0%E5%86%99%E6%B3%95%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E5%AE%8C%E6%95%B4%E7%A4%BA%E4%BE%8B/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/ai/coding-agent-%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%A8%A1%E6%9D%BF-%E5%9B%9B%E8%A6%81%E7%B4%A0%E5%86%99%E6%B3%95%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E5%AE%8C%E6%95%B4%E7%A4%BA%E4%BE%8B/</guid><description>上下文比提示技巧更重要。一套按「四要素 + 开发闭环」组织的 Coding Agent 任务提示词模板，附后端接口开发的完整填写示例。</description><pubDate>Fri, 21 Aug 2026 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;随着大模型能力的提升，AI 编码工具正在从&quot;代码补全助手&quot;演变为能够参与完整开发流程的 Coding Agent。但很多人用了很久，产出质量依然不稳定——问题往往不在模型，而在任务描述的方式。&lt;/p&gt;
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>CodeGraph 安装与使用指南</title><link>https://lewis.heiok.top/posts/codegraph-%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/codegraph-%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</guid><pubDate>Wed, 02 Sep 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+&lt;p&gt;原文链接：https://zhuanlan.zhihu.com/p/2044864852875818711
+抓取时间：2026-09-02 10:47:38&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2&gt;一、简介&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;CodeGraph&lt;/strong&gt; 是一个为 AI 编码代理（Claude Code、Cursor、Codex、Gemini 等）提供&lt;strong&gt;语义代码智能&lt;/strong&gt;的本地工具。&lt;/p&gt;
+&lt;p&gt;核心价值：给 AI 编码助手提供一个&lt;strong&gt;预建的代码知识图谱&lt;/strong&gt;，让 AI 不再需要通过大量 grep/read 文件来理解代码结构，从而&lt;strong&gt;降低约 25% 成本、减少约 62% 工具调用&lt;/strong&gt;，且完全本地运行。&lt;/p&gt;
+&lt;h3&gt;核心功能&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;功能&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;智能上下文构建&lt;/td&gt;
+&lt;td&gt;一次工具调用即可返回入口点、相关符号和代码片段&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;全文搜索&lt;/td&gt;
+&lt;td&gt;基于 FTS5 的符号名称即时搜索&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;影响分析&lt;/td&gt;
+&lt;td&gt;修改前追踪调用者、被调用者和完整影响范围&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;自动同步&lt;/td&gt;
+&lt;td&gt;文件监听器使用原生 OS 事件，代码修改后图谱自动更新&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;20+ 语言支持&lt;/td&gt;
+&lt;td&gt;TypeScript、Python、Go、Rust、Java、C/C++、Swift 等&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;框架路由感知&lt;/td&gt;
+&lt;td&gt;识别 14 种 Web 框架的路由文件，关联 URL 到处理函数&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;跨语言桥接&lt;/td&gt;
+&lt;td&gt;Swift ↔ ObjC、React Native Bridge、Expo Modules 等&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;100% 本地&lt;/td&gt;
+&lt;td&gt;无数据外传，无 API Key，纯 SQLite 数据库&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr /&gt;
+&lt;h2&gt;二、安装&lt;/h2&gt;
+&lt;h3&gt;方式 1：官方安装脚本（需要能访问 GitHub）&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;如果 curl 报错或无法解析版本，可以指定版本号：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;CODEGRAPH_VERSION=v0.9.4 sh install.sh
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;方式 2：手动下载安装（推荐，适用于网络受限环境）&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;从 GitHub Releases 下载对应平台的压缩包：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Linux x64: &lt;code&gt;codegraph-linux-x64.tar.gz&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;macOS arm64: &lt;code&gt;codegraph-darwin-arm64.tar.gz&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;macOS x64: &lt;code&gt;codegraph-darwin-x64.tar.gz&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;下载地址：https://github.com/colbymchenry/codegraph/releases&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;解压：&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;tar -xzf codegraph-linux-x64.tar.gz
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ol&gt;
+&lt;li&gt;创建软链接到 PATH 中：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;mkdir -p ~/.local/bin
+ln -sf /path/to/codegraph-linux-x64/bin/codegraph ~/.local/bin/codegraph
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ol&gt;
+&lt;li&gt;确保 &lt;code&gt;~/.local/bin&lt;/code&gt; 在 PATH 中（添加到 &lt;code&gt;~/.bashrc&lt;/code&gt;）：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;echo &apos;export PATH=&quot;$HOME/.local/bin:$PATH&quot;&apos; &amp;gt;&amp;gt; ~/.bashrc
+source ~/.bashrc
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ol&gt;
+&lt;li&gt;验证安装：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;pre&gt;&lt;code&gt;codegraph --version
+# 输出: 0.9.4
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h2&gt;三、初始化项目&lt;/h2&gt;
+&lt;p&gt;进入你要分析的代码库目录，执行初始化并建立索引：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;cd /path/to/your-project
+codegraph init -i
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;init&lt;/code&gt; 会在项目根目录创建 &lt;code&gt;.codegraph/&lt;/code&gt; 目录&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;-i&lt;/code&gt; 表示同时建立索引（等同于 &lt;code&gt;init&lt;/code&gt; + &lt;code&gt;index&lt;/code&gt;）&lt;/li&gt;
+&lt;li&gt;索引数据存储在 &lt;code&gt;.codegraph/codegraph.db&lt;/code&gt;（SQLite 数据库）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;工作原理&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;提取&lt;/strong&gt; — 用 tree-sitter 解析源码 AST，提取符号节点和调用边&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;存储&lt;/strong&gt; — 存入本地 SQLite 数据库&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;解析&lt;/strong&gt; — 解析函数调用→定义、import→源文件、类继承等关系&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;自动同步&lt;/strong&gt; — MCP 服务器模式下监听文件变更，增量更新图谱&lt;/li&gt;
+&lt;/ol&gt;
+&lt;hr /&gt;
+&lt;h2&gt;四、CLI 常用命令&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;命令&lt;/th&gt;
+&lt;th&gt;用途&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph init -i&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;初始化项目并建索引&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph index&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;全量重建索引&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph index --force&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;强制全量重建索引&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph sync&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;增量更新索引&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph status&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;查看索引统计信息&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph query &amp;lt;关键词&amp;gt;&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;搜索符号（函数/类/方法名）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph callers &amp;lt;符号&amp;gt;&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;查找谁调用了这个函数&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph callees &amp;lt;符号&amp;gt;&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;查找这个函数调用了谁&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph impact &amp;lt;符号&amp;gt;&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;分析修改某符号的影响范围&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph context &amp;lt;任务描述&amp;gt;&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;为 AI 构建上下文&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph files&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;查看已索引的文件结构&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codegraph serve --mcp&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;启动 MCP 服务器&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3&gt;使用示例&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;# 搜索某个符号
+codegraph query &quot;xxx&quot;
+
+# 查看谁调用了某个函数
+codegraph callers &quot;xxx&quot;
+
+# 分析修改某函数的影响
+codegraph impact &quot;xxx&quot;
+
+# 为 AI 构建上下文（输出可直接粘贴给 AI）
+codegraph context &quot;xxx&quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h2&gt;五、作为 MCP 服务器使用（核心用法）&lt;/h2&gt;
+&lt;p&gt;CodeGraph 最强大的用法是作为 &lt;strong&gt;MCP（Model Context Protocol）服务器&lt;/strong&gt;，让 AI 编码助手自动调用它来查询代码结构。&lt;/p&gt;
+&lt;h3&gt;启动方式&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;codegraph serve --mcp
+&lt;/code&gt;&lt;/pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;注意&lt;/strong&gt;：执行后终端会“卡住”——这是正常行为。它是一个 stdio 模式的服务进程，等待通过 stdin 接收 JSON-RPC 请求。你不需要手动运行它，AI 客户端会自动管理其生命周期。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3&gt;提供的 MCP 工具&lt;/h3&gt;
+&lt;p&gt;启动后，AI 代理可以调用以下能力：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;codegraph_query&lt;/code&gt; — 搜索符号&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;codegraph_context&lt;/code&gt; — 为任务构建相关代码上下文&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;codegraph_callers&lt;/code&gt; / &lt;code&gt;codegraph_callees&lt;/code&gt; — 调用链分析&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;codegraph_impact&lt;/code&gt; — 影响分析&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;h2&gt;六、配置到 AI 客户端&lt;/h2&gt;
+&lt;h3&gt;Claude Code&lt;/h3&gt;
+&lt;p&gt;在 &lt;code&gt;~/.claude.json&lt;/code&gt; 中添加：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{
+  &quot;mcpServers&quot;: {
+    &quot;codegraph&quot;: {
+      &quot;type&quot;: &quot;stdio&quot;,
+      &quot;command&quot;: &quot;/path/to/codegraph-linux-x64/bin/codegraph&quot;,
+      &quot;args&quot;: [&quot;serve&quot;, &quot;--mcp&quot;],
+      &quot;cwd&quot;: &quot;/path/to/your-project&quot;
+    }
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;Cursor&lt;/h3&gt;
+&lt;p&gt;在项目根目录创建 &lt;code&gt;.cursor/mcp.json&lt;/code&gt;：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{
+  &quot;mcpServers&quot;: {
+    &quot;codegraph&quot;: {
+      &quot;command&quot;: &quot;/path/codegraph-linux-x64/bin/codegraph&quot;,
+      &quot;args&quot;: [&quot;serve&quot;, &quot;--mcp&quot;]
+    }
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;多项目配置&lt;/h3&gt;
+&lt;p&gt;如果需要同时分析多个代码库，注册多个 MCP 服务器实例：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{
+  &quot;mcpServers&quot;: {
+    &quot;codegraph-xxx&quot;: {
+      &quot;type&quot;: &quot;stdio&quot;,
+      &quot;command&quot;: &quot;/path/to/codegraph-linux-x64/bin/codegraph&quot;,
+      &quot;args&quot;: [&quot;serve&quot;, &quot;--mcp&quot;],
+      &quot;cwd&quot;: &quot;/path/to/your-project&quot;
+    },
+    &quot;codegraph-xxx&quot;: {
+      &quot;type&quot;: &quot;stdio&quot;,
+      &quot;command&quot;: &quot;/path/to/codegraph-linux-x64/bin/codegraph&quot;,
+      &quot;args&quot;: [&quot;serve&quot;, &quot;--mcp&quot;],
+      &quot;cwd&quot;: &quot;/path/to/your-project&quot;
+    }
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h2&gt;七、完整使用流程示例&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;# 1. 克隆代码库
+git clone --depth 1 https://github.com/xxx.git
+cd xxx
+
+# 2. 初始化 + 索引
+codegraph init -i
+
+# 3. 查看索引状态
+codegraph status
+
+# 4. 搜索符号
+codegraph query &quot;xxx&quot;
+
+# 5. 查看调用关系
+codegraph callers &quot;xxx&quot;
+codegraph callees &quot;xxx&quot;
+
+# 6. 影响分析
+codegraph impact &quot;xxx&quot;
+
+# 7. 为 AI 构建上下文
+codegraph context &quot;xxx&quot;
+
+# 8. 启动 MCP 服务器（供 AI 客户端调用）
+codegraph serve --mcp
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h2&gt;八、注意事项&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;零配置&lt;/strong&gt;：不需要写配置文件，语言自动识别&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;自动排除&lt;/strong&gt;：&lt;code&gt;target/&lt;/code&gt;、&lt;code&gt;node_modules/&lt;/code&gt;、&lt;code&gt;.git/&lt;/code&gt; 等构建目录自动跳过&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;自动同步&lt;/strong&gt;：MCP 服务器模式下会监听文件变更，自动增量更新&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;纯本地&lt;/strong&gt;：所有数据存在本地 SQLite，不会外传，无需 API Key&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;轻量级&lt;/strong&gt;：codegraph 本身很轻量，多实例运行开销很小&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;h2&gt;九、故障排查&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;问题&lt;/th&gt;
+&lt;th&gt;解决方案&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;curl: (48) An unknown option was passed in to libcurl&lt;/td&gt;
+&lt;td&gt;系统 curl 版本不兼容，手动下载 tar.gz 安装&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;could not resolve latest version&lt;/td&gt;
+&lt;td&gt;指定版本号：CODEGRAPH_VERSION=v0.9.4 sh install.sh&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;codegraph serve --mcp 卡住&lt;/td&gt;
+&lt;td&gt;正常行为，它是 stdio 服务进程，等待 JSON-RPC 请求&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;索引很慢&lt;/td&gt;
+&lt;td&gt;大型项目首次索引需要时间，后续用 sync 增量更新即可&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;命令找不到&lt;/td&gt;
+&lt;td&gt;确认 ~/.local/bin 在 PATH 中，或使用完整路径调用&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr /&gt;
+&lt;h2&gt;十、支持多分支项目&lt;/h2&gt;
+&lt;p&gt;CodeGraph 的索引是基于&lt;strong&gt;本地文件系统目录&lt;/strong&gt;的，不是基于 Git 分支的。所以为不同分支创建独立索引，本质上就是让不同分支的代码存在于&lt;strong&gt;不同的目录&lt;/strong&gt;下，然后分别初始化索引。&lt;/p&gt;
+&lt;h3&gt;方案一：&lt;code&gt;git worktree&lt;/code&gt;（推荐）&lt;/h3&gt;
+&lt;p&gt;Git 原生支持将不同分支 checkout 到不同目录，共享同一个 &lt;code&gt;.git&lt;/code&gt; 仓库，不需要重复 clone：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;# 在主仓库目录下，把 feature-branch 分支 checkout 到另一个目录
+git worktree add /xxx/neon-feature ../neon-feature feature-branch
+
+# 然后为这个目录单独初始化 CodeGraph 索引
+cd /xxx/neon-feature
+codegraph init   # 或者对应的初始化命令
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;这样：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;/xxx/neon&lt;/code&gt; → main 分支的索引&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/xxx/neon-feature&lt;/code&gt; → feature-branch 的索引&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;查询时通过 &lt;code&gt;projectPath&lt;/code&gt; 参数指定用哪个索引：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{ &quot;projectPath&quot;: &quot;/xxx/neon-feature&quot;, &quot;task&quot;: &quot;...&quot; }
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;方案二：多次 clone&lt;/h3&gt;
+&lt;p&gt;直接 clone 多份仓库到不同目录，各自 checkout 不同分支，各自建索引。简单粗暴，但磁盘占用大。&lt;/p&gt;
+&lt;h3&gt;方案三：切换分支后重建索引&lt;/h3&gt;
+&lt;p&gt;如果同时只需要分析一个分支，可以：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;git checkout feature-branch
+codegraph index  # 重新建索引（覆盖原来的 .codegraph/）
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;缺点是切换分支后必须等索引重建完才能用，不能同时查两个分支。&lt;/p&gt;
+&lt;h3&gt;推荐选择&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;场景&lt;/th&gt;
+&lt;th&gt;推荐方案&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;需要同时对比多个分支&lt;/td&gt;
+&lt;td&gt;git worktree&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;只需要分析当前分支&lt;/td&gt;
+&lt;td&gt;切换分支后重建索引&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;分支差异很大，磁盘够用&lt;/td&gt;
+&lt;td&gt;多次 clone&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;code&gt;git worktree&lt;/code&gt; 是最优解，既不浪费磁盘（共享 &lt;code&gt;.git&lt;/code&gt; 对象库），又能同时维护多个分支的独立索引。&lt;/p&gt;
+</content:encoded></item><item><title>Coding Agent 提示词模板：四要素写法与代码开发完整示例</title><link>https://lewis.heiok.top/posts/ai/coding-agent-%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%A8%A1%E6%9D%BF-%E5%9B%9B%E8%A6%81%E7%B4%A0%E5%86%99%E6%B3%95%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E5%AE%8C%E6%95%B4%E7%A4%BA%E4%BE%8B/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/ai/coding-agent-%E6%8F%90%E7%A4%BA%E8%AF%8D%E6%A8%A1%E6%9D%BF-%E5%9B%9B%E8%A6%81%E7%B4%A0%E5%86%99%E6%B3%95%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%BC%80%E5%8F%91%E5%AE%8C%E6%95%B4%E7%A4%BA%E4%BE%8B/</guid><description>上下文比提示技巧更重要。一套按「四要素 + 开发闭环」组织的 Coding Agent 任务提示词模板，附后端接口开发的完整填写示例。</description><pubDate>Fri, 21 Aug 2026 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;随着大模型能力的提升，AI 编码工具正在从&quot;代码补全助手&quot;演变为能够参与完整开发流程的 Coding Agent。但很多人用了很久，产出质量依然不稳定——问题往往不在模型，而在任务描述的方式。&lt;/p&gt;
 &lt;p&gt;智谱的 &lt;a href=&quot;https://docs.bigmodel.cn/cn/coding-plan/learning-resources/best-practice&quot;&gt;Coding Plan 最佳实践&lt;/a&gt; 提出了一个核心观点：&lt;strong&gt;上下文比提示技巧更重要&lt;/strong&gt;。一个有效的任务描述应包含四个要素，复杂任务要先规划再执行，并让 Agent 走完&quot;实现 → 测试 → 检查 → 审查&quot;的完整开发闭环。&lt;/p&gt;
 &lt;p&gt;本文基于这套原则，整理出一份可直接复用的代码开发提示词模板，并给出一个后端接口开发的完整填写示例。&lt;/p&gt;
 &lt;h2&gt;任务描述的四要素&lt;/h2&gt;
