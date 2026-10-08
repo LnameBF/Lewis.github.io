@@ -1,4 +1,524 @@
-<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>CodeGraph 安装与使用指南</title><link>https://lewis.heiok.top/posts/codegraph-%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/codegraph-%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</guid><pubDate>Wed, 02 Sep 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lewis</title><description>Lewis Site</description><link>https://lewis.heiok.top/</link><language>zh_CN</language><item><title>frp 内网穿透搭建教程 —— 多二级域名 + HTTPS</title><link>https://lewis.heiok.top/posts/%E8%BF%90%E7%BB%B4/frp%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F%E6%90%AD%E5%BB%BA%E6%95%99%E7%A8%8B-%E5%A4%9A%E4%BA%8C%E7%BA%A7%E5%9F%9F%E5%90%8D-https/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E8%BF%90%E7%BB%B4/frp%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F%E6%90%AD%E5%BB%BA%E6%95%99%E7%A8%8B-%E5%A4%9A%E4%BA%8C%E7%BA%A7%E5%9F%9F%E5%90%8D-https/</guid><description>使用 frp（TOML 配置，v0.71.0）将多个二级域名以 HTTPS 穿透到内网服务：服务端 systemd 部署、客户端 Docker Compose 部署、https2http 插件终结 TLS、MySQL TCP 直通及常见报错排查</description><pubDate>Thu, 08 Oct 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+&lt;p&gt;整理日期：2026-10-08 ｜ frp 版本：v0.71.0（TOML 配置格式，适用于 frp ≥ 0.52）&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;文中域名（example.com）与内网 IP（192.168.1.100）均为示例数据，非真实环境；实际使用时替换为自己的域名和内网地址。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;场景：一台公网服务器，多个二级域名解析到该服务器，不同子域名穿透到内网机器的不同端口，浏览器直接通过 &lt;code&gt;https://子域名&lt;/code&gt; 访问内网服务。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr /&gt;
+&lt;h2&gt;1. 架构说明&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;用户浏览器
+   │  https://dbx.example.com (443)
+   ▼
+公网服务器 frps ──按 SNI 分流──隧道──▶ 内网机器 frpc（https2http 插件终结 TLS）──▶ 192.168.1.100:4224
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;frps（服务端）&lt;/strong&gt;：跑在公网服务器上，监听 443（HTTPS 流量按 SNI 分流）、80（HTTP）、7000（与 frpc 的通信端口）、7500（监控面板）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;frpc（客户端）&lt;/strong&gt;：跑在内网机器上，用 Docker Compose 部署。HTTPS 流量由 frps 原样转发进隧道，在&lt;strong&gt;内网侧&lt;/strong&gt;由 &lt;code&gt;https2http&lt;/code&gt; 插件用本地证书终结 TLS，再转成 HTTP 访问内网服务。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;特点&lt;/strong&gt;：证书只放在内网机器上，服务器全程只见密文；缺点是证书到期需手动更换（无自动续期）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;非 HTTP 服务&lt;/strong&gt;（如 MySQL）不携带 Host/SNI，无法按域名分流，只能走 TCP 直通（域名仅作为服务器 IP 的别名，分流靠端口）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;服务清单（本文示例）&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;子域名&lt;/th&gt;
+&lt;th&gt;内网地址&lt;/th&gt;
+&lt;th&gt;协议&lt;/th&gt;
+&lt;th&gt;代理类型&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;sy.example.com&lt;/td&gt;
+&lt;td&gt;192.168.1.100:9002&lt;/td&gt;
+&lt;td&gt;HTTP&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;https&lt;/code&gt; + https2http 插件&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;dbx.example.com&lt;/td&gt;
+&lt;td&gt;192.168.1.100:4224&lt;/td&gt;
+&lt;td&gt;HTTP&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;https&lt;/code&gt; + https2http 插件&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;drone.example.com&lt;/td&gt;
+&lt;td&gt;192.168.1.100:8001&lt;/td&gt;
+&lt;td&gt;HTTP&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;https&lt;/code&gt; + https2http 插件&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;gost.example.com&lt;/td&gt;
+&lt;td&gt;192.168.1.100:3100&lt;/td&gt;
+&lt;td&gt;HTTP&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;https&lt;/code&gt; + https2http 插件&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;status.example.com&lt;/td&gt;
+&lt;td&gt;192.168.1.100:25774&lt;/td&gt;
+&lt;td&gt;HTTP&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;https&lt;/code&gt; + https2http 插件&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;mysql.example.com&lt;/td&gt;
+&lt;td&gt;192.168.1.100:3308&lt;/td&gt;
+&lt;td&gt;MySQL（TCP）&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;tcp&lt;/code&gt; 直通，remotePort = 3308&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr /&gt;
+&lt;h2&gt;2. 准备工作&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;DNS 解析&lt;/strong&gt;：在域名管理商处添加泛解析 &lt;code&gt;*.example.com → 服务器公网IP&lt;/code&gt;（一次配置，后续新增子域名无需再动 DNS）；或逐条添加 A 记录。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;证书文件&lt;/strong&gt;：每个子域名一张证书（PEM 格式，建议含完整证书链 fullchain + 私钥 key）；如果有 &lt;code&gt;*.example.com&lt;/code&gt; 泛域名证书，所有服务共用一对文件即可。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;云安全组放行端口&lt;/strong&gt;：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;端口&lt;/th&gt;
+&lt;th&gt;用途&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;7000/tcp&lt;/td&gt;
+&lt;td&gt;frpc ↔ frps 通信&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;80/tcp&lt;/td&gt;
+&lt;td&gt;HTTP 访问（vhost）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;443/tcp&lt;/td&gt;
+&lt;td&gt;HTTPS 访问（vhost）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;7500/tcp&lt;/td&gt;
+&lt;td&gt;frps 监控面板&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;3308/tcp&lt;/td&gt;
+&lt;td&gt;MySQL TCP 直通（按需）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;备案提醒&lt;/strong&gt;：大陆地域的服务器，未 ICP 备案的域名在 80/443 上会被运营商拦截。解决：备案 / 选香港·境外地域 / 改用非标端口。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;hr /&gt;
+&lt;h2&gt;3. 服务端安装（frps，公网服务器）&lt;/h2&gt;
+&lt;p&gt;以 root 身份执行，安装目录 &lt;code&gt;/root/frps&lt;/code&gt;。&lt;/p&gt;
+&lt;h3&gt;3.1 下载安装&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;# 确认架构：x86_64 → amd64；aarch64 → arm64
+uname -m
+
+# 下载解压（版本号以 https://github.com/fatedier/frp/releases 最新为准）
+cd /tmp
+wget https://github.com/fatedier/frp/releases/download/v0.71.0/frp_0.71.0_linux_amd64.tar.gz
+tar -xzf frp_0.71.0_linux_amd64.tar.gz
+
+# 只需要 frps 这个文件（frpc 是客户端用的）
+mkdir -p /root/frps
+cp frp_0.71.0_linux_amd64/frps /root/frps/
+&lt;/code&gt;&lt;/pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;大陆服务器下载 GitHub 慢：可在链接前加加速前缀（如 &lt;code&gt;https://ghproxy.net/&lt;/code&gt;），或本地下载后 &lt;code&gt;scp&lt;/code&gt; 上传。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3&gt;3.2 编写配置 &lt;code&gt;/root/frps/frps.toml&lt;/code&gt;&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;tee /root/frps/frps.toml &amp;gt; /dev/null &amp;lt;&amp;lt;&apos;EOF&apos;
+bindPort = 7000
+vhostHTTPPort = 80
+vhostHTTPSPort = 443
+subDomainHost = &quot;example.com&quot;
+auth.token = &quot;换成强密码1&quot;
+
+# 内置监控面板
+webServer.addr = &quot;0.0.0.0&quot;
+webServer.port = 7500
+webServer.user = &quot;admin&quot;
+webServer.password = &quot;换成强密码2&quot;
+EOF
+&lt;/code&gt;&lt;/pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;两个密码不要相同&lt;/strong&gt;：7000 端口的 token 是唯一门锁（弱密码等于任何人都能借服务器打隧道）；7500 面板直接暴露公网。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3&gt;3.3 注册 systemd 服务&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;tee /etc/systemd/system/frps.service &amp;gt; /dev/null &amp;lt;&amp;lt;&apos;EOF&apos;
+[Unit]
+Description=frp server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/root/frps/frps -c /root/frps/frps.toml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now frps
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;3.4 验证&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;systemctl status frps --no-pager
+ss -tlnp | grep frps        # 应监听 7000、80、443、7500
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;浏览器访问 &lt;code&gt;http://服务器IP:7500&lt;/code&gt;，用配置里的账号密码登录面板。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2&gt;4. 客户端安装（frpc，内网机器）&lt;/h2&gt;
+&lt;p&gt;用 Docker Compose 部署，镜像 &lt;code&gt;snowdreamtech/frpc&lt;/code&gt;（社区主流，amd64/arm64 都有）。&lt;/p&gt;
+&lt;h3&gt;4.1 目录结构&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;/root/frpc/
+├── docker-compose.yml
+├── frpc.toml
+└── certs/                        # 宿主机证书目录（挂载为容器内 /etc/frp/certs）
+    ├── sy.example.com.pem / .key
+    ├── dbx.example.com.pem / .key
+    ├── drone.example.com.pem / .key
+    ├── gost.example.com.pem / .key
+    └── status.example.com.pem / .key
+&lt;/code&gt;&lt;/pre&gt;
+&lt;blockquote&gt;
+&lt;p&gt;泛域名证书只需放一对文件，配置里所有代理引用同一对路径。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3&gt;4.2 docker-compose.yml&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;services:
+  frpc:
+    image: snowdreamtech/frpc
+    container_name: frpc
+    restart: always
+    network_mode: host          # Linux 推荐：容器直接用宿主机网络
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml
+      - ./certs:/etc/frp/certs:ro
+&lt;/code&gt;&lt;/pre&gt;
+&lt;blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Windows / Mac 的 Docker Desktop 不支持 &lt;code&gt;network_mode: host&lt;/code&gt;&lt;/strong&gt;：删掉该行，改加 &lt;code&gt;extra_hosts: [&quot;host.docker.internal:host-gateway&quot;]&lt;/code&gt;，并且 frpc.toml 里插件的 &lt;code&gt;localAddr&lt;/code&gt; 写 &lt;code&gt;host.docker.internal:端口&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;国内拉不动 Docker Hub：先给 Docker 配镜像加速器（&lt;code&gt;/etc/docker/daemon.json&lt;/code&gt; 加 &lt;code&gt;registry-mirrors&lt;/code&gt;）再 &lt;code&gt;docker compose pull&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;h3&gt;4.3 frpc.toml（完整示例）&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;# ========== 服务器连接 ==========
+serverAddr = &quot;服务器公网IP&quot;
+serverPort = 7000
+auth.token = &quot;强密码1（和 frps.toml 一致）&quot;
+transport.tls.enable = true     # 加密 frpc↔frps 控制通道，建议开
+
+# ========== HTTPS 服务：按子域名分流，证书在内网本地 ==========
+[[proxies]]
+name = &quot;sy&quot;
+type = &quot;https&quot;
+subdomain = &quot;sy&quot;                # = sy.example.com
+
+[proxies.plugin]
+type = &quot;https2http&quot;
+localAddr = &quot;192.168.1.100:9002&quot;
+crtPath = &quot;/etc/frp/certs/sy.example.com.pem&quot;
+keyPath = &quot;/etc/frp/certs/sy.example.com.key&quot;
+
+[[proxies]]
+name = &quot;dbx&quot;
+type = &quot;https&quot;
+subdomain = &quot;dbx&quot;               # = dbx.example.com
+
+[proxies.plugin]
+type = &quot;https2http&quot;
+localAddr = &quot;192.168.1.100:4224&quot;
+crtPath = &quot;/etc/frp/certs/dbx.example.com.pem&quot;
+keyPath = &quot;/etc/frp/certs/dbx.example.com.key&quot;
+
+[[proxies]]
+name = &quot;drone&quot;
+type = &quot;https&quot;
+subdomain = &quot;drone&quot;             # = drone.example.com
+
+[proxies.plugin]
+type = &quot;https2http&quot;
+localAddr = &quot;192.168.1.100:8001&quot;
+crtPath = &quot;/etc/frp/certs/drone.example.com.pem&quot;
+keyPath = &quot;/etc/frp/certs/drone.example.com.key&quot;
+
+[[proxies]]
+name = &quot;gost&quot;
+type = &quot;https&quot;
+subdomain = &quot;gost&quot;              # = gost.example.com
+
+[proxies.plugin]
+type = &quot;https2http&quot;
+localAddr = &quot;192.168.1.100:3100&quot;
+crtPath = &quot;/etc/frp/certs/gost.example.com.pem&quot;
+keyPath = &quot;/etc/frp/certs/gost.example.com.key&quot;
+
+[[proxies]]
+name = &quot;status&quot;
+type = &quot;https&quot;
+subdomain = &quot;status&quot;            # = status.example.com
+
+[proxies.plugin]
+type = &quot;https2http&quot;
+localAddr = &quot;192.168.1.100:25774&quot;
+crtPath = &quot;/etc/frp/certs/status.example.com.pem&quot;
+keyPath = &quot;/etc/frp/certs/status.example.com.key&quot;
+
+# ========== MySQL：非HTTP，TCP直通（不走域名分流） ==========
+[[proxies]]
+name = &quot;mysql&quot;
+type = &quot;tcp&quot;
+localIP = &quot;192.168.1.100&quot;
+localPort = 3308
+remotePort = 3308               # 服务器对外暴露的端口
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;strong&gt;TOML 格式三个要点（都是实际踩过的坑）：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;subdomain&lt;/code&gt; 是&lt;strong&gt;字符串不带括号&lt;/strong&gt;，只写&lt;strong&gt;子域前缀&lt;/strong&gt;（写 &lt;code&gt;sy&lt;/code&gt;，不要写 &lt;code&gt;[&quot;sy.example.com&quot;]&lt;/code&gt;）；&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;[proxies.plugin]&lt;/code&gt; 段必须写在每条代理普通参数（name/type/subdomain）的&lt;strong&gt;后面&lt;/strong&gt;；&lt;/li&gt;
+&lt;li&gt;证书路径写的是&lt;strong&gt;容器内路径&lt;/strong&gt; &lt;code&gt;/etc/frp/certs/...&lt;/code&gt;（对应宿主机 &lt;code&gt;/root/frpc/certs/&lt;/code&gt;）。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3&gt;4.4 启动与验证&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;cd /root/frpc
+docker compose up -d
+docker compose logs -f
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;看到 &lt;code&gt;login to server success&lt;/code&gt; 和每条代理的 &lt;code&gt;start proxy success&lt;/code&gt; 即成功。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2&gt;5. 整体验证&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;客户端日志&lt;/strong&gt;：所有代理 &lt;code&gt;start proxy success&lt;/code&gt;；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;服务端面板&lt;/strong&gt; &lt;code&gt;http://服务器IP:7500&lt;/code&gt;：代理列表全部在线、有流量曲线；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;浏览器&lt;/strong&gt;：访问 &lt;code&gt;https://dbx.example.com&lt;/code&gt; 等域名，出现证书锁、页面为内网对应服务即通；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MySQL&lt;/strong&gt;：&lt;code&gt;mysql -h mysql.example.com -P 3308 -u 用户 -p&lt;/code&gt;（域名只是 IP 别名，分流靠端口 3308）。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;blockquote&gt;
+&lt;p&gt;注意：frp &lt;strong&gt;不会自动把 http:// 跳转到 https://&lt;/strong&gt;，地址栏直接输 https。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr /&gt;
+&lt;h2&gt;6. 日常运维&lt;/h2&gt;
+&lt;h3&gt;新增一个服务（以 status.example.com → 25774 为例）&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;cd /root/frpc
+cat &amp;gt;&amp;gt; frpc.toml &amp;lt;&amp;lt;&apos;EOF&apos;
+
+[[proxies]]
+name = &quot;status&quot;
+type = &quot;https&quot;
+subdomain = &quot;status&quot;
+
+[proxies.plugin]
+type = &quot;https2http&quot;
+localAddr = &quot;192.168.1.100:25774&quot;
+crtPath = &quot;/etc/frp/certs/status.example.com.pem&quot;
+keyPath = &quot;/etc/frp/certs/status.example.com.key&quot;
+EOF
+
+docker compose restart frpc
+docker compose logs -f
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;前置条件：泛解析已覆盖该子域名（否则补 A 记录）、证书文件已放入 &lt;code&gt;certs/&lt;/code&gt;（泛域名证书则复用）。&lt;strong&gt;服务端无需任何改动。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;常用命令&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;# 服务端
+systemctl restart frps                        # 改配置后重启
+journalctl -u frps -e -n 50                   # 看服务端日志（如端口占用报错）
+
+# 客户端
+docker compose restart frpc                   # 改配置后重启
+docker compose logs -f                        # 跟踪日志
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;证书更换&lt;/h3&gt;
+&lt;p&gt;证书到期需&lt;strong&gt;手动替换&lt;/strong&gt; &lt;code&gt;certs/&lt;/code&gt; 下的文件，然后 &lt;code&gt;docker compose restart frpc&lt;/code&gt;。没有自动续期，到期日自行记录（对比 Caddy 方案的唯一代价）。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2&gt;7. 踩坑记录（常见报错速查）&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;报错 / 现象&lt;/th&gt;
+&lt;th&gt;原因&lt;/th&gt;
+&lt;th&gt;解决&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;type [https] not supported when vhost https port is not set&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;服务端&lt;/strong&gt;没配 &lt;code&gt;vhostHTTPSPort&lt;/code&gt;，或配了没重启&lt;/td&gt;
+&lt;td&gt;frps.toml 加 &lt;code&gt;vhostHTTPSPort = 443&lt;/code&gt;，&lt;code&gt;systemctl restart frps&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;custom domain [dbx.example.com] should not belong to subdomain host [example.com]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;服务端设了 &lt;code&gt;subDomainHost&lt;/code&gt; 后，子域名不能再用 &lt;code&gt;customDomains&lt;/code&gt; 全称声明&lt;/td&gt;
+&lt;td&gt;客户端改用 &lt;code&gt;subdomain = &quot;dbx&quot;&lt;/code&gt; 短前缀&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;subdomain&lt;/code&gt; 写成数组或全称&lt;/td&gt;
+&lt;td&gt;格式错误&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;subdomain&lt;/code&gt; 是字符串、只写前缀：&lt;code&gt;subdomain = &quot;sy&quot;&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;443 起不来&lt;/td&gt;
+&lt;td&gt;端口被 nginx/apache 等占用&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;ss -tlnp | grep 443&lt;/code&gt; 找到占用者停掉，或换端口&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;域名打不开但面板显示代理在线&lt;/td&gt;
+&lt;td&gt;DNS 未生效，或大陆服务器未备案被拦 80/443&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;nslookup 子域名&lt;/code&gt; 确认解析；未备案走备案/境外服务器/非标端口&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;frpc 日志大量 &lt;code&gt;http: TLS handshake error from x.x.x.x: ...&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;公网扫描器/机器人探测 443（证书签发后域名进入证书透明度 CT 日志，机器人按域名探测），被 TLS 层正常拒绝&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;不是故障&lt;/strong&gt;，属互联网背景噪音；浏览器能正常打开 &lt;code&gt;https://子域名&lt;/code&gt; 即无问题&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr /&gt;
+&lt;h2&gt;8. 安全清单&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;[ ] &lt;code&gt;auth.token&lt;/code&gt; 使用强密码（7000 端口对公网开放，token 是唯一门锁）&lt;/li&gt;
+&lt;li&gt;[ ] 面板 7500 密码独立且够强；更稳妥可把 &lt;code&gt;webServer.addr&lt;/code&gt; 改 &lt;code&gt;127.0.0.1&lt;/code&gt;，用 SSH 隧道访问：&lt;code&gt;ssh -L 7500:127.0.0.1:7500 root@服务器IP&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;[ ] MySQL 走 TCP 直通等于&lt;strong&gt;直接挂公网&lt;/strong&gt;：数据库强密码、删除匿名账户，最好安全组里 3308 只放行固定出口 IP（仅自用可考虑 frp 的 &lt;code&gt;stcp&lt;/code&gt; 安全隧道模式，端口完全不暴露）&lt;/li&gt;
+&lt;li&gt;[ ] 证书文件使用含中间证书的 fullchain，避免部分客户端报不信任&lt;/li&gt;
+&lt;li&gt;[ ] 大陆服务器 + 未备案域名：80/443 会被拦截，提前规划（备案 / 境外地域 / 非标端口）&lt;/li&gt;
+&lt;/ul&gt;
+</content:encoded></item><item><title>小白向Komari搭建及配置图文教程</title><link>https://lewis.heiok.top/posts/%E8%BF%90%E7%BB%B4/%E5%B0%8F%E7%99%BD%E5%90%91komari%E6%90%AD%E5%BB%BA%E5%8F%8A%E9%85%8D%E7%BD%AE%E5%9B%BE%E6%96%87%E6%95%99%E7%A8%8B/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/%E8%BF%90%E7%BB%B4/%E5%B0%8F%E7%99%BD%E5%90%91komari%E6%90%AD%E5%BB%BA%E5%8F%8A%E9%85%8D%E7%BD%AE%E5%9B%BE%E6%96%87%E6%95%99%E7%A8%8B/</guid><description>面向新手的 Komari 服务器监控/探针面板搭建与配置教程，涵盖 Docker Compose 与 1Panel 部署、反向代理、PurCarte 主题美化及监控节点添加</description><pubDate>Thu, 08 Oct 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
+&lt;p&gt;原文链接：https://juejin.cn/post/7600234310965919782#heading-9
+抓取时间：2026-10-08 11:20:14&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;小白向Komari搭建及配置图文教程&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;/user/3653005204006634/posts&quot;&gt;
+猫猫摸大鱼
+&lt;/a&gt;
+2026-01-28&lt;/p&gt;
+&lt;p&gt;953&lt;/p&gt;
+&lt;p&gt;阅读5分钟
+本文作者：猫猫摸大鱼 原文地址：&lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Fwww.iloli.love%2Farchives%2F1769602819038&quot;&gt;www.iloli.love/archives/17…&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;1. 前言&lt;/h2&gt;
+&lt;p&gt;Komari 是一个服务器监控/探针面板，github地址为 &lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Fgithub.com%2Fkomari-monitor%2Fkomari&quot;&gt;github.com/komari-moni…&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;本文基于 Komari 1.1.3 版本，Purcarte主题 1.2.5 版本，KomariBeautify 0.4.2 版本&lt;/p&gt;
+&lt;p&gt;本文中搭建Komari使用的是腾讯云轻量应用服务器，可以参加腾讯云活动 &lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Fcloud.tencent.com%2Fact%2Fpro%2Fdouble12-2025&quot;&gt;cloud.tencent.com/act/pro/dou…&lt;/a&gt; 进行购买，4核4G服务器新客38元/年起，当然买不买都无所谓，毕竟我也没有AFF&lt;/p&gt;
+&lt;h2&gt;2. 部署搭建Komari&lt;/h2&gt;
+&lt;p&gt;首先是部署Komari，这里我们介绍docker compose 部署和 1panel 部署两种方式（2.1与2.2两种方式二选一即可）&lt;/p&gt;
+&lt;p&gt;如果想要使用更多部署方式（例如一键脚本）可以参考Komari官方文档 &lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Fwww.komari.wiki%2Finstall%2Fquick-start.html&quot;&gt;www.komari.wiki/install/qui…&lt;/a&gt;&lt;/p&gt;
+&lt;h3&gt;2.1 docker compose 部署&lt;/h3&gt;
+&lt;p&gt;首先确保你的服务器安装了 Docker ，安装 Docker 的教程遍地都是，这里就不多赘述了（建议使用 &lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Flinuxmirrors.cn%2F&quot;&gt;linuxmirrors.cn/&lt;/a&gt; ）&lt;/p&gt;
+&lt;p&gt;另外只要不是非常久远版本的 Docker 都是自带 compose 的，所以一般来说不需要额外安装 docker-compose&lt;/p&gt;
+&lt;p&gt;确定安装好 Docker 了以后，就可以找一个目录来部署和保存Komari的数据了（本文中使用 /data/komari ）&lt;/p&gt;
+&lt;p&gt;在 /data/komari 目录下新建文件 compose.yaml&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/50dc695b03e94c69b77bf1dd8a094fe8~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=g6tILqqMe5Rt3LSJHLe6thY1hNo%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;将以下内容复制粘贴进 compose.yaml&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;services:
+  komari:
+    image: ghcr.io/komari-monitor/komari:latest
+    container_name: komari
+    ports:
+      - 25774:25774
+    volumes:
+      - ./data:/app/data
+    environment:
+      # 可选：自定义初始管理员账号
+      # ADMIN_USERNAME: admin
+      # ADMIN_PASSWORD: yourpassword
+    restart: unless-stopped
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/aecdf4c9d3a84bcb833660bae93ffcb6~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=vwHlTCfW63nCAaoQsTzBVY5IS1c%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;接下来进行修改&lt;/p&gt;
+&lt;p&gt;首先，如果你的服务器位于大陆，可以将 ghcr.io/komari-monitor/komari:latest 替换为 ghcr.1ms.run/komari-monitor/komari:latest （1ms.run加速镜像）&lt;/p&gt;
+&lt;p&gt;其次，可以将 - 25774:25774 中 前面的 那个25774修改为其它端口（这个也可以不修改，默认即可）&lt;/p&gt;
+&lt;p&gt;然后，将 # ADMIN_USERNAME 和 # ADMIN_PASSWORD 前面的 # 删除，并分别修改后面的值为你要给komari设置的账号 密码（要修改）&lt;/p&gt;
+&lt;p&gt;我的服务器位于大陆，不修改端口，设置了账号密码，修改后的示例：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/a6caac97bcd4439ea1e51ec13a95cf0d~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=fNTjCPxsgwmt6dm9shfh%2BsaHoLU%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;保存后，在 /data/komari 目录下运行命令 docker compose up -d ，如下图，容器启动即成功&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/6d90250437f1446ca8915d443add09e2~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=8jCPR1yT09D9NNlFhpglNEn89gY%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h3&gt;2.2 1panel部署&lt;/h3&gt;
+&lt;p&gt;如果你的服务器在使用1panel面板，那么可以使用更简单的部署方式&lt;/p&gt;
+&lt;p&gt;首先在服务器上运行脚本&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;bash -c &quot;$(curl -sSL https://1panel.komari.wiki/install.sh)&quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/920a1b9e7faa49fb96c56d446d5fceb3~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=3HgwQBZ%2BliWJyu8buFg07UJ5vBU%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;接下来 来到1panel面板，点击 应用商店 - 同步本地应用 然后关闭弹窗&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/20eea493b0cf4ca0b3f50ee073fddb5d~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=LI6ycTL8WeV4I6Nz2Y50Kh6dDo8%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;接下来输入 komari ，点击搜索，点击安装&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/3f562b8865a24579b02b83ec67ddfa2b~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=cuImtkPEgUcQHTTrtuZ8ZasMYxQ%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;然后 可选修改端口（一般默认即可），修改管理员用户名和密码，如果不配置反代或需要端口访问，则将 端口外部访问 勾选&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/e6b5c20952a94260a6595ff7595715af~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=eHz5uoKD%2B%2FdWJDsEsK6wXcwPcFM%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;如果你的服务器位于境外，直接点击确认即可&lt;/p&gt;
+&lt;p&gt;如果你的服务器位于大陆，那么下拉到底部，勾选 编辑 compose 文件 ，然后在下方框内将 ghcr.io/komari-monitor/komari 替换为 ghcr.1ms.run/komari-monitor/komari （1ms.run加速镜像），点击确认&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/334c42287d4c49e88e37740a0d65b837~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=ToTsA6pkd8kUFRTxjjcMT9b%2B2C4%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;安装完成，关闭弹窗即可&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/a9e29d8be1ef4c05bf4fbd0b9b0b0315~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=umkMnLWe%2FcFgKGv8I9sGz6lkx54%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;已经可以在应用商店看到刚刚安装的komari了&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/2187391245b342af95aac0276abef7e1~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=BomGlq5UmevBrRgXC9YH1MiKq5E%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h3&gt;2.3 （可选）配置反代&lt;/h3&gt;
+&lt;p&gt;1panel面板的反代模板内容很全面，所以为了方便，这里我使用1panel配置反代&lt;/p&gt;
+&lt;p&gt;点击网站 - 网站 - 创建网站&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/1bf5282ad63744499995227e2819b097~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=0ACncQZf%2FqZPBTJvelmmXQfk7LU%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;选择 反向代理 ，填写你反代komari的域名&lt;/p&gt;
+&lt;p&gt;如果你是1panel部署的komari，则点击下拉框，点击komari，点击确认&lt;/p&gt;
+&lt;p&gt;如果你是其它方式部署的komari，则在代理地址里填 127.0.0.1:25774 （如果你自定义了其它端口则将25774修改为你的端口），点击确认&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/abc4ee3d83024ce59ea8cb630bf1a783~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=%2B8t6F%2FyMDZVYViN1MahQIuJCWFw%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;如果需要为刚刚创建的网站域名配置证书，则点击配置 - HTTPS - 启用HTTPS，可以在里面配置你的证书，本文不再赘述&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/b73f5cbdd3c943d4afcbf25265673171~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=SEPDgFRBcCtPkCp0eJZp%2B5TWjd4%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/82673761888044d1baa9c50f10d799a2~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=hNyrBoLtsoC7qfJnXMMksigNSpI%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h2&gt;3. 配置 Komari&lt;/h2&gt;
+&lt;p&gt;已经部署完成了，接下来就可以访问并配置komari了&lt;/p&gt;
+&lt;h3&gt;3.1 访问komari&lt;/h3&gt;
+&lt;p&gt;如果你配置了反代，则访问你的域名&lt;/p&gt;
+&lt;p&gt;如果你没有配置反代，则访问 服务器IP:25774 （如果你自定义了其它端口则将25774修改为你的端口）&lt;/p&gt;
+&lt;p&gt;点击右上角登录，输入你刚刚设置的账号密码，点击登录&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/8e0be668e0e04bfb84c45b7ca4ec4695~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=2Qv3s%2F2OKqs051gHrsROC6rb1I0%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;点击接受&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/b083d6dee0aa4bfbb6aa489f6a239ede~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=aU5%2BZQG%2Bij%2FUlMn7INQbdFDRKAM%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h3&gt;3.2 （可选）配置PurCarte主题&lt;/h3&gt;
+&lt;p&gt;PurCarte主题github地址：&lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Fgithub.com%2FMontia37%2Fkomari-theme-purcarte&quot;&gt;github.com/Montia37/ko…&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;首先，访问releases，下载最新版的主题包到本地 &lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Fgithub.com%2FMontia37%2Fkomari-theme-purcarte%2Freleases&quot;&gt;github.com/Montia37/ko…&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/6a5c233b973a49f695198bbdcd7b74ec~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=ydm9m1s0ls3jt3nRvTPQQ5Ves9c%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;在后台点击设置 - 主题管理 - 上传主题，上传刚刚下载的主题包&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/08306bbf18bb4788852e1415c2058785~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=DvcxYPAEZUvOJKu2%2B1Nuarn57dU%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;点击齿轮按钮，设置为当前主题&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/8a8ae654b83f4483a54f0d6110a15d71~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=XQj6zbXfAlymRClYb7pgHAInGeA%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;可以在前台点击如图按钮进行主题配置，也可以在后台 PurCarte设置 进行主题配置&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/934894f57e5b48889ae3cb5ee26fa16c~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=DQXs0hPKC6dP3appkT7xlvkCsqw%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/261ee53937f245a0a1b6a506a4ae2ca5~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=ZLCklr%2BIyIulx38mTAOfUMNpe%2F8%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;默认配置即可用，建议自行全部翻阅一遍进行自定义配置&lt;/p&gt;
+&lt;p&gt;（这里夹带一点点私货，公益站点，跪求大佬放过）欢迎大家将背景图片设置为我的双端自适应二次元图片API https://www.loliapi.com/acg/&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/8b080e3c25794ab4889dfee4c6cb2ec3~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=VxdVpy1L2smVQklWH8m4A95hfJY%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h3&gt;3.3 （可选）配置KomariBeautify - 基于PurCarte主题的自定义代码&lt;/h3&gt;
+&lt;p&gt;进入后台，点击设置 - 站点，找到 自定义头部 和 自定义Body 的位置&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/0cee104e1a1c46008dbb9dc351941ad2~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=i78inTINncrEQbZ59bQHzmv8py8%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;接下来，访问KomariBeautify的github地址：&lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Fgithub.com%2FYoungYannick%2FKomariBeautify&quot;&gt;github.com/YoungYannic…&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;点击 KomariBeautify.html&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/4f8cfc4d46e44a65b52ba8693a7301cf~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=W7iKR1j6SQbiXloRbobTopPM9zA%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;**重要！！！**需要将其中的 CSS/HTML 相关代码和 JS 相关代码，分别复制到 自定义头部 和 自定义Body 里&lt;/p&gt;
+&lt;p&gt;对于KomariBeautify V0.4.2版本，可以翻到第 1071 行，其它版本请自行寻找，上面的全部为CSS/HTML代码，下面的全部为JS代码&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/f634657ebcf047618f0927329b8a0c86~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=01brbCdgFkj8Y9WAw%2F3PoCU9X08%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;（如果该项目更新了新的版本，自己实在找不到分界在哪里，可以试试问AI）&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/aa040baea8f54f1695cf0caeb594806f~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=30BO29%2F8a3x%2F%2FuCK5IDgZghRO68%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;粘贴完成后分别点击保存&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/5a02025b96bf4f8db43d1bf0afb822bf~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=EAZaUvnjGF1JtbAC6G9oxqHyLl8%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;（补充）0.4.2版本，可以通过修改792和793行的代码，来修改欢迎小面板的图片和标题&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/f73c3b9290ea4d3f843a2a5dc0b20673~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=uieZw2KdegGNGPJTs9Cd3siL5rE%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/ddd25b412b514e089ba1e6d938239dfd~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=zIUXUaRn8yFYwbExJwzofzkGpRA%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/94ed8e4cd757401c8c12dc764aee62c8~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=hUfykB38VLM8JtEH318lFzoRmfA%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;目前添加了主题和增强的效果&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/e3ff80cacf39493aa15fb6832774c1a7~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=vC7CmQm7JnnodF35JMZAFlYGkyk%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h3&gt;3.4 添加服务器节点&lt;/h3&gt;
+&lt;p&gt;进入后台，点击服务器 - 添加节点，可选填写节点名称，点击添加节点&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/816cb5069d7a47d1b92baa66fb0878ee~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=DzG2MCqDVkQhFQDRtW9%2FcgkuybY%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;点击一键部署指令按钮，根据服务器的类型和自己所需自行选择安装选项，如果是大陆机器，可以勾选 Github代理 ，然后填写 https://ghfast.top/ （目前可用，可能随时不可用，建议自己寻找），点击复制&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/a25755c9272d4abd98c69ce4cbc67b9f~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=27nH9XmcSuXf9ISI7ZfugQ29AQ8%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;在对应的服务器上运行刚刚复制的命令，很快就安装完了&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/71fede1d5f5a480ebb5317959ae8d230~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=anf4YmaBdBENtR3b6vIxkEisbeU%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;返回前台，已经可以看到刚刚添加的机器了&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://p6-xtjj-sign.byteimg.com/tos-cn-i-73owjymdk6/e4eadc654b28473c97e14e416f9f0081~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAg54yr54yr5pG45aSn6bG8:q75.awebp?rk3s=f64ab15b&amp;amp;x-expires=1792022851&amp;amp;x-signature=QPQkrkbmvtKJaAWTWBtk%2FwAEnvY%3D&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h2&gt;4. 总结&lt;/h2&gt;
+&lt;p&gt;欢迎大家来我的探针参观 &lt;a href=&quot;https://link.juejin.cn?target=https%3A%2F%2Fstatus.iloli.love%2F&quot;&gt;status.iloli.love/&lt;/a&gt; ，蹭蹭大家的流量（bushi&lt;/p&gt;
+&lt;p&gt;到这里，Komari的搭建及基础配置就完成了，感谢你的阅读，komari还有一些好玩的配置项，这里就先不多赘述了，以后 （下辈子） 再填坑吧&lt;/p&gt;
+</content:encoded></item><item><title>CodeGraph 安装与使用指南</title><link>https://lewis.heiok.top/posts/codegraph-%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</link><guid isPermaLink="true">https://lewis.heiok.top/posts/codegraph-%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/</guid><pubDate>Wed, 02 Sep 2026 00:00:00 GMT</pubDate><content:encoded>&lt;blockquote&gt;
 &lt;p&gt;原文链接：https://zhuanlan.zhihu.com/p/2044864852875818711
 抓取时间：2026-09-02 10:47:38&lt;/p&gt;
 &lt;/blockquote&gt;
