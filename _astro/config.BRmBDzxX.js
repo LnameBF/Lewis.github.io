@@ -1,0 +1,1 @@
+var t=(e=>(e[e.Home=0]="Home",e[e.Archive=1]="Archive",e[e.About=2]="About",e))(t||{});const a={lang:"zh_CN",banner:{text:{subtitles:["保持热爱，奔赴山海","心之所向，素履以往","慢慢来，比较快"]}}};t.Home,t.Archive,t.About;const o={theme:"github-dark"};export{o as e,a as s};
